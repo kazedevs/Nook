@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import {
   Download,
   FolderOpen,
-  Palette,
   Info,
   ExternalLink,
   CreditCard,
   Shield,
   RefreshCw,
+  Mail,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { SystemInfo, UpdateInfo } from "@/types";
@@ -24,7 +24,7 @@ const lbl: React.CSSProperties = {
   fontSize: 10,
   letterSpacing: "0.1em",
   textTransform: "uppercase" as const,
-  color: "#333",
+  color: "#666",
   marginBottom: 14,
   ...mono,
 };
@@ -201,8 +201,8 @@ export function Settings() {
   const SECTIONS = [
     { id: "license", label: "license", icon: Shield },
     { id: "scanning", label: "scanning", icon: FolderOpen },
-    { id: "appearance", label: "appearance", icon: Palette },
     { id: "updates", label: "updates", icon: Download },
+    { id: "help", label: "help", icon: Mail },
     { id: "about", label: "about", icon: Info },
   ];
 
@@ -224,7 +224,7 @@ export function Settings() {
                 borderRadius: 6,
                 border: "none",
                 background: activeSection === id ? "#161616" : "transparent",
-                color: activeSection === id ? "#E8E6E1" : "#444",
+                color: activeSection === id ? "#E8E6E1" : "#666",
                 fontSize: 12,
                 cursor: "pointer",
                 textAlign: "left",
@@ -267,13 +267,13 @@ export function Settings() {
                 }}
               />
             </div>
-            <p style={{ fontSize: 11, color: "#444", ...mono }}>
+            <p style={{ fontSize: 11, color: "#666", ...mono }}>
               {usedPct}% used
             </p>
             <p
               style={{
                 fontSize: 11,
-                color: "#2A2A2A",
+                color: "#555",
                 marginTop: 3,
                 ...mono,
               }}
@@ -308,7 +308,7 @@ export function Settings() {
                     padding: "3px 10px",
                     borderRadius: 100,
                     border: `0.5px solid ${isLicensed ? "#27500A" : "#2A2A2A"}`,
-                    color: isLicensed ? "#3B6D11" : "#444",
+                    color: isLicensed ? "#3B6D11" : "#666",
                     ...mono,
                   }}
                 >
@@ -342,7 +342,7 @@ export function Settings() {
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 10 }}
                 >
-                  <p style={{ fontSize: 11, color: "#333", ...mono }}>
+                  <p style={{ fontSize: 11, color: "#666", ...mono }}>
                     scanning is free. upgrade to unlock file deletion, unlimited
                     depth, and advanced cleanup.
                   </p>
@@ -392,7 +392,7 @@ export function Settings() {
                               width: 10,
                               height: 10,
                               borderRadius: "50%",
-                              border: "1.5px solid #333",
+                              border: "1.5px solid #555",
                               borderTopColor: "#666",
                               animation: "spin 0.8s linear infinite",
                             }}
@@ -432,7 +432,7 @@ export function Settings() {
                     key={f}
                     style={{ ...(i < arr.length - 1 ? row : rowLast), gap: 10 }}
                   >
-                    <span style={{ fontSize: 11, color: "#555", ...mono }}>
+                    <span style={{ fontSize: 11, color: "#777", ...mono }}>
                       {f}
                     </span>
                     <div
@@ -495,7 +495,7 @@ export function Settings() {
                 >
                   default scan location
                 </p>
-                <p style={{ fontSize: 10, color: "#444", ...mono }}>
+                <p style={{ fontSize: 10, color: "#666", ...mono }}>
                   {prefs.defaultPath || "not set"}
                 </p>
               </div>
@@ -507,7 +507,7 @@ export function Settings() {
                   borderRadius: 5,
                   border: "0.5px solid #2A2A2A",
                   background: "transparent",
-                  color: "#555",
+                  color: "#777",
                   fontSize: 10,
                   cursor: "pointer",
                   ...mono,
@@ -529,7 +529,7 @@ export function Settings() {
                 >
                   default scan depth
                 </p>
-                <p style={{ fontSize: 10, color: "#444", ...mono }}>
+                <p style={{ fontSize: 10, color: "#666", ...mono }}>
                   current: {prefs.defaultDepth}
                 </p>
               </div>
@@ -545,7 +545,7 @@ export function Settings() {
                       border: `0.5px solid ${prefs.defaultDepth === d ? "#3B6D11" : "#2A2A2A"}`,
                       background:
                         prefs.defaultDepth === d ? "#0A1A08" : "#141414",
-                      color: prefs.defaultDepth === d ? "#3B6D11" : "#555",
+                      color: prefs.defaultDepth === d ? "#3B6D11" : "#777",
                       fontSize: 11,
                       cursor: "pointer",
                       ...mono,
@@ -579,51 +579,6 @@ export function Settings() {
           </div>
         )}
 
-        {/* APPEARANCE */}
-        {activeSection === "appearance" && (
-          <div style={card}>
-            <p style={lbl}>appearance</p>
-            <div
-              style={{
-                ...rowLast,
-                flexDirection: "column",
-                alignItems: "flex-start",
-                gap: 10,
-              }}
-            >
-              <p style={{ fontSize: 12, color: "#C8C4BE", ...mono }}>theme</p>
-              <div style={{ display: "flex", gap: 8, width: "100%" }}>
-                {(["dark", "light", "system"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => save({ theme: t })}
-                    style={{
-                      flex: 1,
-                      height: 28,
-                      borderRadius: 5,
-                      border: `0.5px solid ${prefs.theme === t ? "#3B6D11" : "#2A2A2A"}`,
-                      background: prefs.theme === t ? "#0A1A08" : "#141414",
-                      color: prefs.theme === t ? "#3B6D11" : "#555",
-                      fontSize: 11,
-                      cursor: "pointer",
-                      ...mono,
-                    }}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-              <p style={{ fontSize: 10, color: "#2A2A2A", ...mono }}>
-                {prefs.theme === "dark"
-                  ? "always dark — current active theme"
-                  : prefs.theme === "light"
-                    ? "light mode (not yet supported)"
-                    : "follows system appearance"}
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* UPDATES */}
         {activeSection === "updates" && (
           <div style={card}>
@@ -651,7 +606,7 @@ export function Settings() {
                 >
                   installed version
                 </p>
-                <p style={{ fontSize: 10, color: "#444", ...mono }}>0.1.0</p>
+                <p style={{ fontSize: 10, color: "#666", ...mono }}>0.1.0</p>
               </div>
               <button
                 onClick={handleCheckUpdate}
@@ -701,6 +656,96 @@ export function Settings() {
           </div>
         )}
 
+        {/* HELP */}
+        {activeSection === "help" && (
+          <div style={card}>
+            <p style={lbl}>get help</p>
+
+            <div style={row}>
+              <div>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "#C8C4BE",
+                    marginBottom: 2,
+                    ...mono,
+                  }}
+                >
+                  email support
+                </p>
+                <p style={{ fontSize: 10, color: "#666", ...mono }}>
+                  get help via email
+                </p>
+              </div>
+              <a
+                href="mailto:support@nookapp.pro"
+                style={{
+                  height: 28,
+                  padding: "0 12px",
+                  borderRadius: 5,
+                  border: "0.5px solid #2A2A2A",
+                  background: "transparent",
+                  color: "#777",
+                  fontSize: 10,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  textDecoration: "none",
+                  ...mono,
+                }}
+              >
+                <Mail style={{ width: 11, height: 11 }} strokeWidth={1.6} />
+                email
+              </a>
+            </div>
+
+            <div style={rowLast}>
+              <div>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "#C8C4BE",
+                    marginBottom: 2,
+                    ...mono,
+                  }}
+                >
+                  social media
+                </p>
+                <p style={{ fontSize: 10, color: "#666", ...mono }}>
+                  follow on X (Twitter)
+                </p>
+              </div>
+              <a
+                href="https://x.com/fiynraj"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  height: 28,
+                  padding: "0 12px",
+                  borderRadius: 5,
+                  border: "0.5px solid #2A2A2A",
+                  background: "transparent",
+                  color: "#777",
+                  fontSize: 10,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  textDecoration: "none",
+                  ...mono,
+                }}
+              >
+                <ExternalLink
+                  style={{ width: 11, height: 11 }}
+                  strokeWidth={1.6}
+                />
+                x.com
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* ABOUT */}
         {activeSection === "about" && (
           <div style={card}>
@@ -717,7 +762,7 @@ export function Settings() {
               { k: "developer", v: "@fiynraj" },
             ].map(({ k, v }, i, arr) => (
               <div key={k} style={i < arr.length - 1 ? row : rowLast}>
-                <span style={{ fontSize: 11, color: "#333", ...mono }}>
+                <span style={{ fontSize: 11, color: "#666", ...mono }}>
                   {k}
                 </span>
                 <span style={{ fontSize: 11, color: "#666", ...mono }}>
@@ -741,7 +786,7 @@ export function Settings() {
                   borderRadius: 5,
                   border: "0.5px solid #2A2A2A",
                   background: "transparent",
-                  color: "#555",
+                  color: "#777",
                   fontSize: 10,
                   textDecoration: "none",
                   ...mono,
@@ -767,7 +812,7 @@ export function Settings() {
                   borderRadius: 5,
                   border: "0.5px solid #2A2A2A",
                   background: "transparent",
-                  color: "#555",
+                  color: "#777",
                   fontSize: 10,
                   textDecoration: "none",
                   ...mono,

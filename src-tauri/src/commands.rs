@@ -7,7 +7,47 @@ use std::path::Path;
 use crate::filesystem::{
     models::ScanResult,
     scanner::scan_directory as fs_scan,
+    analysis::{run_full_analysis as fs_analysis, delete_paths as fs_delete_paths, AnalysisReport},
 };
+
+/// License commands — add/replace in commands.rs
+use crate::license::{
+    get_full_status, activate_license as lic_activate,
+    can_access_features as lic_can_access, ensure_trial_started,
+    LicenseCheckResponse,
+};
+
+/// Single command for all license state — fixes issue #6 (trial_info always populated).
+#[tauri::command]
+pub fn get_current_license_status() -> LicenseCheckResponse {
+    get_full_status()
+}
+
+/// Fix for issue #5: explicit trial start, no side effects on reads.
+#[tauri::command]
+pub fn start_trial() {
+    ensure_trial_started();
+}
+
+/// Fix for issue #8: returns LicenseCheckResponse not bool.
+#[tauri::command]
+pub async fn activate_license(license_key: String) -> Result<LicenseCheckResponse, String> {
+    let key = license_key.trim().to_string();
+    if key.is_empty() { return Err("license key must not be empty".into()) }
+    lic_activate(&key).await
+}
+
+/// Pure read — no side effects.
+#[tauri::command]
+pub fn can_access_features() -> bool {
+    lic_can_access()
+}
+
+/// Deprecated — kept for backwards compat, delegates to get_current_license_status.
+#[tauri::command]
+pub fn get_trial_status() -> LicenseCheckResponse {
+    get_full_status()
+}
 
 /// Emitted to the frontend as the scan progresses.
 /// Frontend listens with: listen("scan_progress", handler)
@@ -43,7 +83,7 @@ pub async fn scan_directory(
         path: path.clone(), files_found: 0, dirs_found: 0, bytes_found: 0, pct: 0,
     });
 
-    let result = fs_scan(&path, max_depth, ignore_hidden, ignore_system).await?;
+    let result = fs_scan(&path, max_depth, ignore_hidden, ignore_system, Some(app.clone()), None).await?;
 
     // Emit completion.
     let _ = app.emit_all("scan_progress", ScanProgressEvent {
@@ -149,20 +189,57 @@ pub async fn open_containing_folder(path: String) -> Result<(), String> {
     }
 }
 
-// License commands (stubs for now)
-#[tauri::command]
-pub async fn check_license() -> Result<bool, String> {
-    Ok(true) // Always valid for now
+/// Analysis request DTO
+#[derive(Debug, Deserialize)]
+pub struct AnalysisRequest {
+    pub root: String,
+    pub min_duplicate_size_mb: Option<u64>,  // default 1
+    pub old_file_days: Option<u64>,           // default 180
+    pub old_file_min_size_mb: Option<u64>,    // default 50
 }
 
-#[tauri::command]
-pub async fn activate_license(_license_key: String) -> Result<bool, String> {
-    Ok(true) // Always succeeds for now
+/// Delete paths request DTO
+#[derive(Debug, Deserialize)]
+pub struct DeletePathsRequest {
+    pub paths: Vec<String>,
 }
 
+/// Delete paths response DTO
+#[derive(Debug, Serialize)]
+pub struct DeletePathsResponse {
+    pub freed_bytes: u64,
+    pub deleted_count: usize,
+}
+
+/// Run analysis command - trial/license paywall
 #[tauri::command]
-pub async fn get_current_license_status() -> Result<String, String> {
-    Ok("active".into()) // Always active for now
+pub async fn run_analysis(request: AnalysisRequest) -> Result<AnalysisReport, String> {
+    if !crate::license::can_access_features() {
+        return Err("analysis requires nook pro".into())
+    }
+
+    let root = request.root.trim().to_string();
+    if root.is_empty() { return Err("root path must not be empty".into()) }
+
+    fs_analysis(
+        &root,
+        request.min_duplicate_size_mb.unwrap_or(1) * 1024 * 1024,
+        request.old_file_days.unwrap_or(180),
+        request.old_file_min_size_mb.unwrap_or(50) * 1024 * 1024,
+    ).await
+}
+
+/// Delete paths command - trial/license paywall
+#[tauri::command]
+pub async fn delete_paths(request: DeletePathsRequest) -> Result<DeletePathsResponse, String> {
+    if !crate::license::can_access_features() {
+        return Err("delete requires nook pro".into())
+    }
+    if request.paths.is_empty() { return Err("no paths provided".into()) }
+
+    let count = request.paths.len();
+    let freed = fs_delete_paths(request.paths).await?;
+    Ok(DeletePathsResponse { freed_bytes: freed, deleted_count: count })
 }
 
 // Update commands (stubs for now)

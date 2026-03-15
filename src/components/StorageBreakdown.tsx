@@ -69,7 +69,7 @@ export function StorageBreakdown({ fileTypes, maxItems = 8 }: Props) {
             fontSize: 9,
             letterSpacing: "0.1em",
             textTransform: "uppercase",
-            color: "#333",
+            color: "#777",
             marginBottom: 10,
             ...mono,
           }}
@@ -83,7 +83,7 @@ export function StorageBreakdown({ fileTypes, maxItems = 8 }: Props) {
             justifyContent: "center",
             height: 80,
             fontSize: 11,
-            color: "#2A2A2A",
+            color: "#555",
             ...mono,
           }}
         >
@@ -105,7 +105,7 @@ export function StorageBreakdown({ fileTypes, maxItems = 8 }: Props) {
           fontSize: 9,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: "#333",
+          color: "#777",
           marginBottom: 12,
           ...mono,
         }}
@@ -167,7 +167,7 @@ export function StorageBreakdown({ fileTypes, maxItems = 8 }: Props) {
               <span
                 style={{
                   fontSize: 10,
-                  color: "#2A2A2A",
+                  color: "#555",
                   width: 28,
                   textAlign: "right",
                   ...mono,

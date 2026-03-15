@@ -42,7 +42,7 @@ export function LargestFiles({ files, onDelete }: Props) {
             fontSize: 9,
             letterSpacing: "0.1em",
             textTransform: "uppercase",
-            color: "#333",
+            color: "#666",
             marginBottom: 10,
             ...mono,
           }}
@@ -56,7 +56,7 @@ export function LargestFiles({ files, onDelete }: Props) {
             justifyContent: "center",
             height: 80,
             fontSize: 11,
-            color: "#2A2A2A",
+            color: "#555",
             ...mono,
           }}
         >
@@ -98,7 +98,7 @@ export function LargestFiles({ files, onDelete }: Props) {
             <span
               style={{
                 fontSize: 10,
-                color: "#2A2A2A",
+                color: "#555",
                 width: 16,
                 textAlign: "right",
                 flexShrink: 0,
@@ -112,7 +112,7 @@ export function LargestFiles({ files, onDelete }: Props) {
                 style={{
                   fontSize: 12,
                   fontWeight: 500,
-                  color: "#888",
+                  color: "#AAA",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -125,7 +125,7 @@ export function LargestFiles({ files, onDelete }: Props) {
               <p
                 style={{
                   fontSize: 10,
-                  color: "#333",
+                  color: "#666",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -139,7 +139,7 @@ export function LargestFiles({ files, onDelete }: Props) {
             <span
               style={{
                 fontSize: 11,
-                color: "#555",
+                color: "#777",
                 flexShrink: 0,
                 minWidth: 52,
                 textAlign: "right",
@@ -187,7 +187,7 @@ export function LargestFiles({ files, onDelete }: Props) {
                     borderRadius: 5,
                     border: "none",
                     background: "transparent",
-                    color: color ?? "#444",
+                    color: color ?? "#666",
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",

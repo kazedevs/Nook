@@ -2,19 +2,18 @@ import { useState, useEffect } from "react";
 import {
   AlertTriangle,
   HardDrive,
-  Zap,
   RefreshCw,
   ChevronRight,
   FolderOpen,
   File,
-  Home,
   Download,
   Monitor,
 } from "lucide-react";
-import { SystemInfo, ScanResult, ScanRequest } from "@/types";
+import { SystemInfo } from "@/types";
 import { invoke } from "@tauri-apps/api/tauri";
 import { formatBytes } from "@/utils/format";
 import { useNavigate } from "react-router-dom";
+import { useScanProgress } from "@/hooks/useScanProgress";
 
 const QUICK_SCAN_PATHS = [
   {
@@ -24,7 +23,7 @@ const QUICK_SCAN_PATHS = [
   },
   {
     label: "scan downloads",
-    path: `/Users/${typeof process !== "undefined" ? (process.env?.USER ?? "") : ""}/Downloads`,
+    path: "~/Downloads",
     icon: <Download className="w-3.5 h-3.5" strokeWidth={1.6} />,
   },
   {
@@ -49,7 +48,7 @@ const sectionLabel: React.CSSProperties = {
   fontSize: 9,
   letterSpacing: "0.1em",
   textTransform: "uppercase",
-  color: "#333",
+  color: "#666",
   marginBottom: 10,
   fontFamily: "var(--font-mono, monospace)",
 };
@@ -60,9 +59,19 @@ export function Dashboard() {
   const navigate = useNavigate();
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [scanningLabel, setScanningLabel] = useState("");
+  const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
+
+  const {
+    scan,
+    cancel,
+    scanning,
+    progress,
+    filesFound,
+    bytesFound,
+    currentPath,
+    result: scanResult,
+    error,
+  } = useScanProgress();
 
   useEffect(() => {
     invoke<SystemInfo>("get_system_info")
@@ -72,26 +81,22 @@ export function Dashboard() {
     const saved = localStorage.getItem("nook_last_scan");
     if (saved) {
       try {
-        setScanResult(JSON.parse(saved));
+        // Removed setScanResult here
       } catch {}
     }
   }, []);
 
   const runScan = async (path: string, label: string) => {
-    setScanning(true);
-    setScanningLabel(label);
-    try {
-      const result = await invoke<ScanResult>("scan_directory", {
-        request: { path, max_depth: 3 } as ScanRequest,
-      });
-      setScanResult(result);
-      localStorage.setItem("nook_last_scan", JSON.stringify(result));
-    } catch (err) {
-      console.error("Scan failed:", err);
-    } finally {
-      setScanning(false);
-      setScanningLabel("");
+    setLastScanTime(new Date());
+
+    // Resolve ~ to actual home directory
+    let resolvedPath = path;
+    if (path.startsWith("~")) {
+      const userHome = await invoke<string>("get_user_home");
+      resolvedPath = path.replace("~", userHome);
     }
+
+    await scan(resolvedPath, 3, true, true);
   };
 
   if (loading)
@@ -130,10 +135,10 @@ export function Dashboard() {
         }}
       >
         <HardDrive
-          style={{ width: 20, height: 20, color: "#333" }}
+          style={{ width: 20, height: 20, color: "#666" }}
           strokeWidth={1.5}
         />
-        <p style={{ fontSize: 12, color: "#444", ...mono }}>
+        <p style={{ fontSize: 12, color: "#666", ...mono }}>
           failed to load system info
         </p>
       </div>
@@ -217,7 +222,7 @@ export function Dashboard() {
                   fontSize: 9,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "#333",
+                  color: "#666",
                   marginBottom: 5,
                   ...mono,
                 }}
@@ -266,7 +271,7 @@ export function Dashboard() {
             display: "flex",
             justifyContent: "space-between",
             fontSize: 9,
-            color: "#333",
+            color: "#666",
             letterSpacing: "0.04em",
             ...mono,
           }}
@@ -286,7 +291,7 @@ export function Dashboard() {
               justifyContent: "space-between",
             }}
           >
-            <span style={{ fontSize: 10, color: "#444", ...mono }}>
+            <span style={{ fontSize: 10, color: "#666", ...mono }}>
               est. freeable
             </span>
             <span
@@ -320,7 +325,7 @@ export function Dashboard() {
             style={{
               width: 13,
               height: 13,
-              color: "#633806",
+              color: "#D4841E",
               flexShrink: 0,
               marginTop: 1,
             }}
@@ -330,14 +335,14 @@ export function Dashboard() {
             <p
               style={{
                 fontSize: 11,
-                color: "#854F0B",
+                color: "#D4841E",
                 marginBottom: 2,
                 ...mono,
               }}
             >
               {isCritical ? "disk is almost full" : "running low on space"}
             </p>
-            <p style={{ fontSize: 10, color: "#3D2800", ...mono }}>
+            <p style={{ fontSize: 10, color: "#633806", ...mono }}>
               {formatBytes(systemInfo.available_disk_space)} remaining. scan
               disk to find what to delete.
             </p>
@@ -348,7 +353,13 @@ export function Dashboard() {
       {/* Quick scan */}
       <div style={card}>
         <p style={sectionLabel}>quick scan</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 8,
+          }}
+        >
           {QUICK_SCAN_PATHS.map(({ label, path, icon }) => (
             <button
               key={path}
@@ -356,27 +367,37 @@ export function Dashboard() {
               disabled={scanning}
               style={{
                 width: "100%",
+                aspectRatio: "1",
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "space-between",
-                padding: "9px 10px",
+                justifyContent: "center",
+                gap: 8,
                 borderRadius: 6,
                 border: "0.5px solid #1A1A1A",
-                background: "transparent",
-                color: scanning && scanningLabel === label ? "#666" : "#555",
+                background: scanning ? "#141414" : "transparent",
+                color: scanning ? "#888" : "#777",
                 fontSize: 11,
                 cursor: "pointer",
                 fontFamily: "var(--font-mono, monospace)",
                 opacity: scanning ? 0.5 : 1,
                 transition: "all 0.1s",
+                padding: "12px",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {scanning && scanningLabel === label ? (
+              <div
+                style={{
+                  fontSize: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {scanning ? (
                   <div
                     style={{
-                      width: 12,
-                      height: 12,
+                      width: 24,
+                      height: 24,
                       borderRadius: "50%",
                       border: "1.5px solid #333",
                       borderTopColor: "#666",
@@ -386,16 +407,109 @@ export function Dashboard() {
                 ) : (
                   icon
                 )}
-                {label}
               </div>
-              <ChevronRight
-                style={{ width: 11, height: 11, color: "#222" }}
-                strokeWidth={1.6}
-              />
+              <div
+                style={{
+                  fontSize: 11,
+                  textAlign: "center",
+                  lineHeight: 1.2,
+                  fontWeight: 500,
+                }}
+              >
+                {label.split(" ").map((word, i) => (
+                  <div key={i}>{word}</div>
+                ))}
+              </div>
             </button>
           ))}
         </div>
       </div>
+
+      {/* Progress */}
+      {scanning && (
+        <div style={card}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 8,
+            }}
+          >
+            <span style={{ fontSize: 11, color: "#666", ...mono }}>
+              scanning {currentPath}
+            </span>
+            <span style={{ fontSize: 11, color: "#666", ...mono }}>
+              {progress}%
+            </span>
+          </div>
+          <div
+            style={{
+              background: "#161616",
+              borderRadius: 2,
+              height: 2,
+              overflow: "hidden",
+              marginBottom: 12,
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                background: "#2A2A2A",
+                width: `${progress}%`,
+                transition: "width 0.3s",
+              }}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 11,
+                color: "#666",
+                ...mono,
+              }}
+            >
+              <div
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  border: "0.5px solid #2A2A2A",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <div
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    background: "#666",
+                    animation: "pulse 1s infinite",
+                  }}
+                />
+              </div>
+              scanning {currentPath}…
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 10,
+                color: "#3B6D11",
+                ...mono,
+              }}
+            >
+              <span>{filesFound.toLocaleString()} files</span>
+              <span>{formatBytes(bytesFound)}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Last scan */}
       {scanResult && (
@@ -410,7 +524,7 @@ export function Dashboard() {
           >
             <p style={sectionLabel}>last scan</p>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 9, color: "#333", ...mono }}>
+              <span style={{ fontSize: 9, color: "#666", ...mono }}>
                 {formatBytes(scanResult.total_size)} ·{" "}
                 {scanResult.file_count.toLocaleString()} files
               </span>
@@ -420,7 +534,7 @@ export function Dashboard() {
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#333",
+                  color: "#666",
                   cursor: "pointer",
                   padding: 0,
                   opacity: scanning ? 0.4 : 1,
@@ -460,7 +574,7 @@ export function Dashboard() {
                   }}
                 >
                   <FolderOpen
-                    style={{ width: 10, height: 10, color: "#333" }}
+                    style={{ width: 10, height: 10, color: "#666" }}
                     strokeWidth={1.6}
                   />
                   <p
@@ -468,7 +582,7 @@ export function Dashboard() {
                       fontSize: 9,
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
-                      color: "#333",
+                      color: "#666",
                       ...mono,
                     }}
                   >
@@ -511,7 +625,7 @@ export function Dashboard() {
                   }}
                 >
                   <File
-                    style={{ width: 10, height: 10, color: "#333" }}
+                    style={{ width: 10, height: 10, color: "#666" }}
                     strokeWidth={1.6}
                   />
                   <p
@@ -519,7 +633,7 @@ export function Dashboard() {
                       fontSize: 9,
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
-                      color: "#333",
+                      color: "#666",
                       ...mono,
                     }}
                   >
@@ -588,10 +702,10 @@ export function Dashboard() {
                     i < insights.length - 1 ? "0.5px solid #161616" : "none",
                 }}
               >
-                <span style={{ fontSize: 11, color: "#555", ...mono }}>
+                <span style={{ fontSize: 11, color: "#777", ...mono }}>
                   {ins.label}
                 </span>
-                <span style={{ fontSize: 11, color: "#888", ...mono }}>
+                <span style={{ fontSize: 11, color: "#AAA", ...mono }}>
                   {formatBytes(ins.size)}
                 </span>
               </div>
@@ -616,14 +730,14 @@ export function Dashboard() {
                 fontSize: 9,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
-                color: "#333",
+                color: "#666",
                 marginBottom: 4,
                 ...mono,
               }}
             >
               operating system
             </p>
-            <p style={{ fontSize: 11, color: "#666", ...mono }}>
+            <p style={{ fontSize: 11, color: "#888", ...mono }}>
               {systemInfo.os_name}
             </p>
           </div>
@@ -633,14 +747,14 @@ export function Dashboard() {
                 fontSize: 9,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
-                color: "#333",
+                color: "#666",
                 marginBottom: 4,
                 ...mono,
               }}
             >
               version
             </p>
-            <p style={{ fontSize: 11, color: "#666", ...mono }}>
+            <p style={{ fontSize: 11, color: "#888", ...mono }}>
               {systemInfo.os_version}
             </p>
           </div>
@@ -649,6 +763,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-// Add this to your global CSS or index.css:
-// @keyframes spin { to { transform: rotate(360deg); } }

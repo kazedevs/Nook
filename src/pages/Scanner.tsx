@@ -35,7 +35,7 @@ const label: React.CSSProperties = {
   fontSize: 9,
   letterSpacing: "0.1em",
   textTransform: "uppercase" as const,
-  color: "#333",
+  color: "#666",
   marginBottom: 10,
   ...mono,
 };
@@ -274,7 +274,7 @@ export function Scanner() {
           >
             scanner
           </p>
-          <p style={{ fontSize: 10, color: "#444", marginTop: 2, ...mono }}>
+          <p style={{ fontSize: 10, color: "#666", marginTop: 2, ...mono }}>
             {lastScanTime
               ? `last scan ${timeSince(lastScanTime)}`
               : "find what's taking up space"}
@@ -293,7 +293,7 @@ export function Scanner() {
               borderRadius: 6,
               border: "0.5px solid #2A2A2A",
               background: "transparent",
-              color: "#555",
+              color: "#777",
               fontSize: 11,
               cursor: "pointer",
               opacity: scanning ? 0.4 : 1,
@@ -335,7 +335,7 @@ export function Scanner() {
               borderRadius: 6,
               border: "0.5px solid #2A2A2A",
               background: "transparent",
-              color: "#555",
+              color: "#777",
               fontSize: 11,
               cursor: "pointer",
               display: "flex",
@@ -355,9 +355,9 @@ export function Scanner() {
                 height: 34,
                 padding: "0 12px",
                 borderRadius: 6,
-                border: "0.5px solid #2A1800",
-                background: "#0D0900",
-                color: "#633806",
+                border: "0.5px solid #4A2C00",
+                background: "#1A1200",
+                color: "#A0522D",
                 fontSize: 11,
                 cursor: "pointer",
                 display: "flex",
@@ -403,7 +403,7 @@ export function Scanner() {
               gap: 12,
               marginBottom: 10,
               fontSize: 10,
-              color: "#444",
+              color: "#666",
               ...mono,
             }}
           >
@@ -455,9 +455,9 @@ export function Scanner() {
             step="1"
             value={maxDepth}
             onChange={(e) => setMaxDepth(parseInt(e.target.value))}
-            style={{ flex: 1, accentColor: "#444" }}
+            style={{ flex: 1, accentColor: "#666" }}
           />
-          <span style={{ fontSize: 9, color: "#2A2A2A", ...mono }}>
+          <span style={{ fontSize: 10, color: "#555", ...mono }}>
             shallow → deep
           </span>
         </div>
@@ -500,7 +500,7 @@ export function Scanner() {
             <span style={{ fontSize: 11, color: "#666", ...mono }}>
               scanning {selectedPath}
             </span>
-            <span style={{ fontSize: 11, color: "#444", ...mono }}>
+            <span style={{ fontSize: 11, color: "#666", ...mono }}>
               {progress}%
             </span>
           </div>
@@ -550,7 +550,7 @@ export function Scanner() {
                     width: 5,
                     height: 5,
                     borderRadius: "50%",
-                    background: "#444",
+                    background: "#666",
                     animation: "pulse 1s infinite",
                   }}
                 />
@@ -562,7 +562,7 @@ export function Scanner() {
                 display: "flex",
                 justifyContent: "space-between",
                 fontSize: 10,
-                color: "#333",
+                color: "#3B6D11",
                 ...mono,
               }}
             >
@@ -739,7 +739,7 @@ export function Scanner() {
                     <span
                       style={{
                         fontSize: 11,
-                        color: "#444",
+                        color: "#666",
                         flexShrink: 0,
                         ...mono,
                       }}
@@ -928,11 +928,11 @@ export function Scanner() {
             }}
           >
             <Scan
-              style={{ width: 18, height: 18, color: "#2A2A2A" }}
+              style={{ width: 18, height: 18, color: "#555" }}
               strokeWidth={1.5}
             />
           </div>
-          <p style={{ fontSize: 13, color: "#555", marginBottom: 6, ...mono }}>
+          <p style={{ fontSize: 13, color: "#777", marginBottom: 6, ...mono }}>
             nothing scanned yet
           </p>
           <p
@@ -966,7 +966,7 @@ export function Scanner() {
                   border: "0.5px solid #1E1E1E",
                   background: "transparent",
                   fontSize: 10,
-                  color: "#444",
+                  color: "#666",
                   cursor: "pointer",
                   ...mono,
                 }}

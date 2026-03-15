@@ -37,17 +37,22 @@ fn main() {
             get_system_info,
             reveal_in_finder,
             open_containing_folder,
+            // Analysis
+            run_analysis,
+            delete_paths,
             // Settings & System
             check_for_updates,
             get_user_home,
             get_username,
             // License
-            check_license,
-            activate_license,
             get_current_license_status,
+            start_trial,
+            activate_license,
+            can_access_features,
+            get_trial_status,
         ])
         .setup(|_app| {
-            // Future: set up app-state (e.g. scan cache, progress emitter).
+            crate::license::ensure_trial_started();
             Ok(())
         })
         .run(tauri::generate_context!())
