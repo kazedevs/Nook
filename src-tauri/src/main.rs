@@ -37,6 +37,10 @@ fn main() {
             get_system_info,
             reveal_in_finder,
             open_containing_folder,
+            // Settings & System
+            check_for_updates,
+            get_user_home,
+            get_username,
             // License
             check_license,
             activate_license,

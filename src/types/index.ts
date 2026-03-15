@@ -33,6 +33,14 @@ export interface SystemInfo {
   os_version: string;
 }
 
+export interface UpdateInfo {
+  current_version: string;
+  latest_version: string;
+  update_available: boolean;
+  download_url?: string;
+  release_notes?: string;
+}
+
 export interface LicenseInfo {
   key: string;
   activated_at: string;
@@ -42,6 +50,8 @@ export interface LicenseInfo {
 export interface ScanRequest {
   path: string;
   max_depth?: number;
+  ignore_hidden?: boolean;
+  ignore_system?: boolean;
 }
 
 export interface DeleteRequest {

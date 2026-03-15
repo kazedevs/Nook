@@ -53,6 +53,15 @@ pub struct SystemInfo {
     pub os_version: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateInfo {
+    pub current_version: String,
+    pub latest_version: String,
+    pub update_available: bool,
+    pub download_url: Option<String>,
+    pub release_notes: Option<String>,
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 impl FileItem {

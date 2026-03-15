@@ -3,75 +3,125 @@ import { FileTypeStat } from "@/types";
 import { formatBytes } from "@/utils/format";
 
 const COLORS = [
-  "#B5D4F4",
-  "#9FE1CB",
-  "#CECBF6",
-  "#F5C4B3",
-  "#FAC775",
-  "#C0DD97",
-  "#D3D1C7",
-  "#F4C0D1",
+  "#3B6D11",
+  "#185FA5",
+  "#534AB7",
+  "#993C1D",
+  "#854F0B",
+  "#0F6E56",
+  "#5F5E5A",
+  "#993556",
 ];
+
+const mono: React.CSSProperties = { fontFamily: "var(--font-mono, monospace)" };
+const card: React.CSSProperties = {
+  background: "#0F0F0F",
+  border: "0.5px solid #1E1E1E",
+  borderRadius: 8,
+  padding: "14px 16px",
+};
 
 interface Props {
   fileTypes: FileTypeStat[];
   maxItems?: number;
 }
 
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    const total = payload.reduce(
+      (sum: number, entry: any) => sum + entry.value,
+      0,
+    );
+    return (
+      <div
+        style={{
+          background: "#1A1A1A",
+          border: "0.5px solid #2A2A2A",
+          borderRadius: 4,
+          padding: "6px 8px",
+          fontSize: 10,
+          color: "#C8C4BE",
+          ...mono,
+        }}
+      >
+        <div style={{ marginBottom: 2 }}>.{data.payload.extension}</div>
+        <div>
+          {formatBytes(data.value)} ({Math.round((data.value / total) * 100)}%)
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function StorageBreakdown({ fileTypes, maxItems = 8 }: Props) {
   const sorted = [...(fileTypes ?? [])]
     .sort((a, b) => b.total_size - a.total_size)
     .slice(0, maxItems);
-
   const total = sorted.reduce((s, t) => s + t.total_size, 0);
-
-  const chartData = sorted.map((t) => ({
-    name: "." + t.extension,
-    value: t.total_size,
-    percentage: Math.round((t.total_size / total) * 100),
-  }));
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white border border-secondary-200 rounded-lg px-3 py-2 text-xs shadow-sm">
-          <p className="font-medium text-secondary-900">{payload[0].name}</p>
-          <p className="text-secondary-500">
-            {formatBytes(payload[0].value)} ({payload[0].payload.percentage}%)
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (!sorted.length)
     return (
-      <div className="bg-white border border-secondary-100 rounded-xl p-5">
-        <p className="text-[11px] font-medium text-secondary-400 mb-3">
+      <div style={card}>
+        <p
+          style={{
+            fontSize: 9,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: "#333",
+            marginBottom: 10,
+            ...mono,
+          }}
+        >
           storage breakdown
         </p>
-        <div className="flex items-center justify-center h-24 text-secondary-300 text-sm">
-          No data
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: 80,
+            fontSize: 11,
+            color: "#2A2A2A",
+            ...mono,
+          }}
+        >
+          no data
         </div>
       </div>
     );
 
+  const chartData = sorted.map((t) => ({
+    name: t.extension,
+    value: t.total_size,
+    extension: t.extension,
+  }));
+
   return (
-    <div className="bg-white border border-secondary-100 rounded-xl p-5">
-      <p className="text-[11px] font-medium text-secondary-400 mb-4">
+    <div style={card}>
+      <p
+        style={{
+          fontSize: 9,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          color: "#333",
+          marginBottom: 12,
+          ...mono,
+        }}
+      >
         storage breakdown
       </p>
-      <div className="flex items-center gap-6">
-        <div className="w-40 h-40 flex-shrink-0">
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ width: 130, height: 130, flexShrink: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={chartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={54}
-                outerRadius={80}
+                innerRadius={45}
+                outerRadius={65}
                 paddingAngle={2}
                 dataKey="value"
               >
@@ -86,23 +136,43 @@ export function StorageBreakdown({ fileTypes, maxItems = 8 }: Props) {
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex-1 space-y-0.5">
+        <div style={{ flex: 1 }}>
           {sorted.map((t, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 py-1.5 border-b border-secondary-50 last:border-0"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "5px 0",
+                borderBottom:
+                  i < sorted.length - 1 ? "0.5px solid #161616" : "none",
+              }}
             >
               <div
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: COLORS[i % COLORS.length] }}
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: COLORS[i % COLORS.length],
+                  flexShrink: 0,
+                }}
               />
-              <span className="text-[12px] text-secondary-700 flex-1">
+              <span style={{ fontSize: 11, color: "#666", flex: 1, ...mono }}>
                 .{t.extension}
               </span>
-              <span className="text-[11px] text-secondary-500">
+              <span style={{ fontSize: 10, color: "#444", ...mono }}>
                 {formatBytes(t.total_size)}
               </span>
-              <span className="text-[11px] text-secondary-300 w-8 text-right">
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "#2A2A2A",
+                  width: 28,
+                  textAlign: "right",
+                  ...mono,
+                }}
+              >
                 {Math.round((t.total_size / total) * 100)}%
               </span>
             </div>

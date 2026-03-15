@@ -13,14 +13,16 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^1.5.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.344.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-icons": "^5.6.0",
     "react-router-dom": "^6.8.0",
-    "lucide-react": "^0.344.0",
-    "clsx": "^2.0.0",
     "recharts": "^2.8.0"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^1.5.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
@@ -29,8 +31,7 @@
     "postcss": "^8.4.24",
     "tailwindcss": "^3.3.0",
     "typescript": "^5.0.0",
-    "vite": "^4.4.0",
-    "@tauri-apps/cli": "^1.5.0"
+    "vite": "^4.4.0"
   },
   "keywords": [
     "disk-space",

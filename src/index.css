@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -24,6 +26,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   }
 
   .dark {
@@ -56,8 +59,14 @@
 
   body {
     @apply bg-background text-foreground;
+    background-color: #0A0A0A;
+    color: #E8E6E1;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @layer components {

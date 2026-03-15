@@ -7,7 +7,7 @@ use crate::filesystem::{
     delete_file_or_directory as fs_delete,
     get_directory_size as fs_dir_size,
     get_system_info as fs_sysinfo,
-    models::{ScanResult, SystemInfo},
+    models::{ScanResult, SystemInfo, UpdateInfo},
     scan_directory as fs_scan,
 };
 use crate::license::{
@@ -30,6 +30,8 @@ pub struct ScanRequest {
     pub path: String,
     /// None = unlimited (the scanner itself caps at a sane default)
     pub max_depth: Option<usize>,
+    pub ignore_hidden: Option<bool>,
+    pub ignore_system: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -71,8 +73,10 @@ pub async fn scan_directory(request: ScanRequest) -> Result<ScanResult, String> 
     }
 
     let max_depth = request.max_depth.map(|d| d.min(64));
+    let ignore_hidden = request.ignore_hidden.unwrap_or(true);
+    let ignore_system = request.ignore_system.unwrap_or(true);
 
-    fs_scan(&path, max_depth).await
+    fs_scan(&path, max_depth, ignore_hidden, ignore_system).await
 }
 
 /// Return the total byte size of a directory tree.
@@ -264,4 +268,47 @@ pub async fn open_containing_folder(path: String) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+/// Check for application updates.
+/// In a real implementation, this would query an update server.
+/// For now, it simulates checking and returns the current version.
+#[tauri::command]
+pub async fn check_for_updates() -> Result<UpdateInfo, String> {
+    // Simulate network delay
+    tokio::time::sleep(tokio::time::Duration::from_millis(1200)).await;
+    
+    // In a real implementation, you would:
+    // 1. Query your update API with current version
+    // 2. Compare with latest available version
+    // 3. Return update info if available
+    
+    Ok(UpdateInfo {
+        current_version: "0.1.0".to_string(),
+        latest_version: "0.1.0".to_string(),
+        update_available: false,
+        download_url: None,
+        release_notes: None,
+    })
+}
+
+/// Get the current user's home directory.
+#[tauri::command]
+pub async fn get_user_home() -> Result<String, String> {
+    match dirs::home_dir() {
+        Some(path) => Ok(path.to_string_lossy().to_string()),
+        None => Err("Could not determine home directory".to_string()),
+    }
+}
+
+/// Get the current user's username.
+#[tauri::command]
+pub async fn get_username() -> Result<String, String> {
+    match std::env::var("USER") {
+        Ok(username) => Ok(username),
+        Err(_) => match std::env::var("USERNAME") {
+            Ok(username) => Ok(username),
+            Err(_) => Err("Could not determine username".to_string()),
+        },
+    }
 }

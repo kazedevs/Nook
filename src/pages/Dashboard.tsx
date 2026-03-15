@@ -1,264 +1,654 @@
-import { useState, useEffect } from "react"
-import { AlertTriangle, HardDrive, Zap, RefreshCw, ChevronRight, FolderOpen, File } from "lucide-react"
-import { SystemInfo, ScanResult, ScanRequest } from "@/types"
-import { invoke } from "@tauri-apps/api/tauri"
-import { formatBytes } from "@/utils/format"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react";
+import {
+  AlertTriangle,
+  HardDrive,
+  Zap,
+  RefreshCw,
+  ChevronRight,
+  FolderOpen,
+  File,
+  Home,
+  Download,
+  Monitor,
+} from "lucide-react";
+import { SystemInfo, ScanResult, ScanRequest } from "@/types";
+import { invoke } from "@tauri-apps/api/tauri";
+import { formatBytes } from "@/utils/format";
+import { useNavigate } from "react-router-dom";
 
 const QUICK_SCAN_PATHS = [
-  { label: "Scan disk", path: "/" },
-  { label: "Scan Downloads", path: `/Users/${typeof process !== "undefined" ? process.env?.USER ?? "" : ""}/Downloads` },
-  { label: "Scan Applications", path: "/Applications" },
-]
+  {
+    label: "scan disk",
+    path: "/",
+    icon: <HardDrive className="w-3.5 h-3.5" strokeWidth={1.6} />,
+  },
+  {
+    label: "scan downloads",
+    path: `/Users/${typeof process !== "undefined" ? (process.env?.USER ?? "") : ""}/Downloads`,
+    icon: <Download className="w-3.5 h-3.5" strokeWidth={1.6} />,
+  },
+  {
+    label: "scan applications",
+    path: "/Applications",
+    icon: <Monitor className="w-3.5 h-3.5" strokeWidth={1.6} />,
+  },
+];
 
-const DMG_EXTS = ["dmg", "pkg", "iso"]
-const VIDEO_EXTS = ["mp4", "mov", "mkv", "avi", "m4v"]
-const DEV_DIRS = ["node_modules", ".cache", "DerivedData", "Pods"]
+const DMG_EXTS = ["dmg", "pkg", "iso"];
+const VIDEO_EXTS = ["mp4", "mov", "mkv", "avi", "m4v"];
+const DEV_DIRS = ["node_modules", ".cache", "DerivedData", "Pods"];
+
+const card: React.CSSProperties = {
+  background: "#0F0F0F",
+  border: "0.5px solid #1E1E1E",
+  borderRadius: 8,
+  padding: "14px 16px",
+};
+
+const sectionLabel: React.CSSProperties = {
+  fontSize: 9,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: "#333",
+  marginBottom: 10,
+  fontFamily: "var(--font-mono, monospace)",
+};
+
+const mono: React.CSSProperties = { fontFamily: "var(--font-mono, monospace)" };
 
 export function Dashboard() {
-  const navigate = useNavigate()
-  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null)
-  const [scanning, setScanning] = useState(false)
-  const [scanningLabel, setScanningLabel] = useState("")
+  const navigate = useNavigate();
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanningLabel, setScanningLabel] = useState("");
 
   useEffect(() => {
     invoke<SystemInfo>("get_system_info")
       .then(setSystemInfo)
       .catch(console.error)
-      .finally(() => setLoading(false))
-
-    const saved = localStorage.getItem("nook_last_scan")
+      .finally(() => setLoading(false));
+    const saved = localStorage.getItem("nook_last_scan");
     if (saved) {
-      try { setScanResult(JSON.parse(saved)) } catch {}
+      try {
+        setScanResult(JSON.parse(saved));
+      } catch {}
     }
-  }, [])
+  }, []);
 
   const runScan = async (path: string, label: string) => {
-    setScanning(true)
-    setScanningLabel(label)
+    setScanning(true);
+    setScanningLabel(label);
     try {
       const result = await invoke<ScanResult>("scan_directory", {
         request: { path, max_depth: 3 } as ScanRequest,
-      })
-      setScanResult(result)
-      localStorage.setItem("nook_last_scan", JSON.stringify(result))
+      });
+      setScanResult(result);
+      localStorage.setItem("nook_last_scan", JSON.stringify(result));
     } catch (err) {
-      console.error("Scan failed:", err)
+      console.error("Scan failed:", err);
     } finally {
-      setScanning(false)
-      setScanningLabel("")
+      setScanning(false);
+      setScanningLabel("");
     }
-  }
+  };
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-5 h-5 rounded-full border-2 border-secondary-200 border-t-secondary-500 animate-spin" />
-    </div>
-  )
+  if (loading)
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: 256,
+        }}
+      >
+        <div
+          style={{
+            width: 16,
+            height: 16,
+            borderRadius: "50%",
+            border: "1.5px solid #222",
+            borderTopColor: "#555",
+            animation: "spin 0.8s linear infinite",
+          }}
+        />
+      </div>
+    );
 
-  if (!systemInfo) return (
-    <div className="flex flex-col items-center justify-center h-64 text-center">
-      <HardDrive className="w-8 h-8 text-secondary-300 mb-3" strokeWidth={1.5} />
-      <p className="text-sm text-secondary-500">Failed to load system information.</p>
-    </div>
-  )
+  if (!systemInfo)
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: 256,
+          gap: 8,
+        }}
+      >
+        <HardDrive
+          style={{ width: 20, height: 20, color: "#333" }}
+          strokeWidth={1.5}
+        />
+        <p style={{ fontSize: 12, color: "#444", ...mono }}>
+          failed to load system info
+        </p>
+      </div>
+    );
 
-  const usagePct = (systemInfo.used_disk_space / systemInfo.total_disk_space) * 100
-  const isCritical = usagePct > 95
-  const isWarning = usagePct > 85
+  const usagePct =
+    (systemInfo.used_disk_space / systemInfo.total_disk_space) * 100;
+  const isCritical = usagePct > 95;
+  const isWarning = usagePct > 85;
 
   const largestFolder = scanResult?.tree?.children
-    ?.filter(c => c.is_directory)
-    .sort((a, b) => b.size - a.size)[0]
+    ?.filter((c) => c.is_directory)
+    .sort((a, b) => b.size - a.size)[0];
+  const largestFile = scanResult?.largest_files?.[0];
 
-  const largestFile = scanResult?.largest_files?.[0]
+  const dmgSize =
+    scanResult?.file_types
+      .filter((t) => DMG_EXTS.includes(t.extension))
+      .reduce((s, t) => s + t.total_size, 0) ?? 0;
+  const videoSize =
+    scanResult?.file_types
+      .filter((t) => VIDEO_EXTS.includes(t.extension))
+      .reduce((s, t) => s + t.total_size, 0) ?? 0;
+  const devSize =
+    scanResult?.largest_files
+      ?.filter((f) =>
+        DEV_DIRS.some((d) => f.name === d || f.path.includes(`/${d}`)),
+      )
+      .reduce((s, f) => s + f.size, 0) ?? 0;
+  const estimatedFreeable = dmgSize + videoSize + devSize;
 
-  const dmgSize = scanResult?.file_types
-    .filter(t => DMG_EXTS.includes(t.extension))
-    .reduce((s, t) => s + t.total_size, 0) ?? 0
-
-  const videoSize = scanResult?.file_types
-    .filter(t => VIDEO_EXTS.includes(t.extension))
-    .reduce((s, t) => s + t.total_size, 0) ?? 0
-
-  const devSize = scanResult?.largest_files
-    ?.filter(f => DEV_DIRS.some(d => f.name === d || f.path.includes(`/${d}`)))
-    .reduce((s, f) => s + f.size, 0) ?? 0
-
-  const estimatedFreeable = dmgSize + videoSize + devSize
   const insights = [
-    dmgSize > 0 && { label: "Disk images & installers", size: dmgSize },
-    videoSize > 0 && { label: "Large video files", size: videoSize },
-    devSize > 0 && { label: "Dev caches & node_modules", size: devSize },
-  ].filter(Boolean) as { label: string; size: number }[]
+    dmgSize > 0 && { label: "disk images & installers", size: dmgSize },
+    videoSize > 0 && { label: "large video files", size: videoSize },
+    devSize > 0 && { label: "dev caches & node_modules", size: devSize },
+  ].filter(Boolean) as { label: string; size: number }[];
 
   return (
-    <div className="space-y-3 max-w-2xl">
-
-      {/* Storage Overview */}
-      <div className="bg-white border border-secondary-100 rounded-xl p-5">
-        <p className="text-[11px] font-medium text-secondary-400 mb-4">storage overview</p>
-
-        <div className="grid grid-cols-4 gap-3 mb-5">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        maxWidth: 900,
+        margin: "0 auto",
+        padding: "0 20px",
+      }}
+    >
+      {/* Storage */}
+      <div style={card}>
+        <p style={sectionLabel}>storage</p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+            gap: 8,
+            marginBottom: 14,
+          }}
+        >
           {[
-            { label: "Total", value: formatBytes(systemInfo.total_disk_space) },
-            { label: "Used", value: formatBytes(systemInfo.used_disk_space) },
-            { label: "Free", value: formatBytes(systemInfo.available_disk_space), warn: isWarning },
-            { label: "Usage", value: `${usagePct.toFixed(1)}%`, warn: isWarning },
-          ].map(s => (
-            <div key={s.label} className="bg-secondary-50 rounded-lg p-3">
-              <p className="text-[10px] text-secondary-400 mb-1">{s.label}</p>
-              <p className={`text-sm font-medium ${s.warn ? "text-red-500" : "text-secondary-900"}`}>{s.value}</p>
+            { k: "total", v: formatBytes(systemInfo.total_disk_space) },
+            { k: "used", v: formatBytes(systemInfo.used_disk_space) },
+            {
+              k: "free",
+              v: formatBytes(systemInfo.available_disk_space),
+              warn: isWarning,
+            },
+            { k: "usage", v: `${usagePct.toFixed(1)}%`, warn: isWarning },
+          ].map((s) => (
+            <div
+              key={s.k}
+              style={{
+                background: "#141414",
+                border: "0.5px solid #1E1E1E",
+                borderRadius: 6,
+                padding: "10px 12px",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 9,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "#333",
+                  marginBottom: 5,
+                  ...mono,
+                }}
+              >
+                {s.k}
+              </p>
+              <p
+                style={{
+                  fontSize: 16,
+                  fontWeight: 500,
+                  letterSpacing: "-0.02em",
+                  color: s.warn ? "#854F0B" : "#E8E6E1",
+                  ...mono,
+                }}
+              >
+                {s.v}
+              </p>
             </div>
           ))}
         </div>
 
-        <div className="w-full bg-secondary-100 rounded-full h-1.5 overflow-hidden mb-2">
+        <div
+          style={{
+            background: "#161616",
+            borderRadius: 2,
+            height: 2,
+            overflow: "hidden",
+            marginBottom: 6,
+          }}
+        >
           <div
-            className={`h-full rounded-full transition-all ${isCritical ? "bg-red-400" : isWarning ? "bg-amber-400" : "bg-secondary-400"}`}
-            style={{ width: `${Math.min(usagePct, 100)}%` }}
+            style={{
+              height: "100%",
+              background: isCritical
+                ? "#712B13"
+                : isWarning
+                  ? "#633806"
+                  : "#2A2A2A",
+              width: `${Math.min(usagePct, 100)}%`,
+              transition: "width 0.4s",
+            }}
           />
         </div>
-        <div className="flex justify-between text-[10px] text-secondary-400">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            fontSize: 9,
+            color: "#333",
+            letterSpacing: "0.04em",
+            ...mono,
+          }}
+        >
           <span>{formatBytes(systemInfo.used_disk_space)} used</span>
           <span>{formatBytes(systemInfo.available_disk_space)} free</span>
         </div>
 
         {estimatedFreeable > 0 && (
-          <div className="mt-4 pt-4 border-t border-secondary-50 flex items-center justify-between">
-            <p className="text-[11px] text-secondary-400">Estimated space you can free</p>
-            <p className="text-sm font-medium text-green-600">{formatBytes(estimatedFreeable)}</p>
+          <div
+            style={{
+              marginTop: 10,
+              paddingTop: 10,
+              borderTop: "0.5px solid #1A1A1A",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span style={{ fontSize: 10, color: "#444", ...mono }}>
+              est. freeable
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#3B6D11",
+                ...mono,
+              }}
+            >
+              +{formatBytes(estimatedFreeable)}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Disk Warning */}
+      {/* Warning */}
       {(isWarning || isCritical) && (
-        <div className={`rounded-xl p-4 border flex items-start gap-3 ${
-          isCritical
-            ? "bg-red-50 border-red-100"
-            : "bg-amber-50 border-amber-100"
-        }`}>
-          <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isCritical ? "text-red-400" : "text-amber-400"}`} strokeWidth={1.8} />
+        <div
+          style={{
+            background: "#0D0900",
+            border: "0.5px solid #2A1800",
+            borderRadius: 8,
+            padding: "10px 14px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 9,
+          }}
+        >
+          <AlertTriangle
+            style={{
+              width: 13,
+              height: 13,
+              color: "#633806",
+              flexShrink: 0,
+              marginTop: 1,
+            }}
+            strokeWidth={1.6}
+          />
           <div>
-            <p className={`text-sm font-medium mb-0.5 ${isCritical ? "text-red-700" : "text-amber-700"}`}>
-              {isCritical ? "Disk is almost full" : "Running low on space"}
+            <p
+              style={{
+                fontSize: 11,
+                color: "#854F0B",
+                marginBottom: 2,
+                ...mono,
+              }}
+            >
+              {isCritical ? "disk is almost full" : "running low on space"}
             </p>
-            <p className={`text-xs ${isCritical ? "text-red-500" : "text-amber-600"}`}>
-              Only {formatBytes(systemInfo.available_disk_space)} remaining. Scan your disk to find what to delete.
+            <p style={{ fontSize: 10, color: "#3D2800", ...mono }}>
+              {formatBytes(systemInfo.available_disk_space)} remaining. scan
+              disk to find what to delete.
             </p>
           </div>
         </div>
       )}
 
-      {/* Quick Actions */}
-      <div className="bg-white border border-secondary-100 rounded-xl p-5">
-        <p className="text-[11px] font-medium text-secondary-400 mb-3">quick actions</p>
-        <div className="space-y-2">
-          {QUICK_SCAN_PATHS.map(({ label, path }) => (
+      {/* Quick scan */}
+      <div style={card}>
+        <p style={sectionLabel}>quick scan</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {QUICK_SCAN_PATHS.map(({ label, path, icon }) => (
             <button
               key={path}
               onClick={() => runScan(path, label)}
               disabled={scanning}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-secondary-100 hover:bg-secondary-50 hover:border-secondary-200 transition-colors disabled:opacity-50 group"
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "9px 10px",
+                borderRadius: 6,
+                border: "0.5px solid #1A1A1A",
+                background: "transparent",
+                color: scanning && scanningLabel === label ? "#666" : "#555",
+                fontSize: 11,
+                cursor: "pointer",
+                fontFamily: "var(--font-mono, monospace)",
+                opacity: scanning ? 0.5 : 1,
+                transition: "all 0.1s",
+              }}
             >
-              <div className="flex items-center gap-2.5">
-                {scanning && scanningLabel === label
-                  ? <div className="w-3.5 h-3.5 rounded-full border-2 border-secondary-300 border-t-secondary-600 animate-spin" />
-                  : <Zap className="w-3.5 h-3.5 text-secondary-400" strokeWidth={1.8} />
-                }
-                <span className="text-sm text-secondary-700">{label}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {scanning && scanningLabel === label ? (
+                  <div
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: "50%",
+                      border: "1.5px solid #333",
+                      borderTopColor: "#666",
+                      animation: "spin 0.8s linear infinite",
+                    }}
+                  />
+                ) : (
+                  icon
+                )}
+                {label}
               </div>
-              <ChevronRight className="w-3.5 h-3.5 text-secondary-300 group-hover:text-secondary-400 transition-colors" strokeWidth={1.8} />
+              <ChevronRight
+                style={{ width: 11, height: 11, color: "#222" }}
+                strokeWidth={1.6}
+              />
             </button>
           ))}
         </div>
       </div>
 
-      {/* Last Scan Summary */}
+      {/* Last scan */}
       {scanResult && (
-        <div className="bg-white border border-secondary-100 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-medium text-secondary-400">last scan</p>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] text-secondary-300">
-                {formatBytes(scanResult.total_size)} · {scanResult.file_count.toLocaleString()} files
+        <div style={card}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 10,
+            }}
+          >
+            <p style={sectionLabel}>last scan</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 9, color: "#333", ...mono }}>
+                {formatBytes(scanResult.total_size)} ·{" "}
+                {scanResult.file_count.toLocaleString()} files
               </span>
               <button
-                onClick={() => scanResult && runScan(scanResult.root_path, "Refresh")}
+                onClick={() => runScan(scanResult.root_path, "refresh")}
                 disabled={scanning}
-                className="text-secondary-300 hover:text-secondary-500 transition-colors disabled:opacity-40"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#333",
+                  cursor: "pointer",
+                  padding: 0,
+                  opacity: scanning ? 0.4 : 1,
+                }}
               >
-                <RefreshCw className="w-3.5 h-3.5" strokeWidth={1.8} />
+                <RefreshCw
+                  style={{ width: 11, height: 11 }}
+                  strokeWidth={1.6}
+                />
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 8,
+              marginBottom: 10,
+            }}
+          >
             {largestFolder && (
-              <div className="bg-secondary-50 rounded-lg p-3">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <FolderOpen className="w-3 h-3 text-secondary-400" strokeWidth={1.8} />
-                  <p className="text-[10px] text-secondary-400">Largest folder</p>
+              <div
+                style={{
+                  background: "#141414",
+                  border: "0.5px solid #1E1E1E",
+                  borderRadius: 6,
+                  padding: "10px 12px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    marginBottom: 6,
+                  }}
+                >
+                  <FolderOpen
+                    style={{ width: 10, height: 10, color: "#333" }}
+                    strokeWidth={1.6}
+                  />
+                  <p
+                    style={{
+                      fontSize: 9,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: "#333",
+                      ...mono,
+                    }}
+                  >
+                    largest folder
+                  </p>
                 </div>
-                <p className="text-sm font-medium text-secondary-800 truncate">{largestFolder.name}</p>
-                <p className="text-xs text-secondary-500">{formatBytes(largestFolder.size)}</p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "#C8C4BE",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    marginBottom: 2,
+                    ...mono,
+                  }}
+                >
+                  {largestFolder.name}
+                </p>
+                <p style={{ fontSize: 10, color: "#444", ...mono }}>
+                  {formatBytes(largestFolder.size)}
+                </p>
               </div>
             )}
             {largestFile && (
-              <div className="bg-secondary-50 rounded-lg p-3">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <File className="w-3 h-3 text-secondary-400" strokeWidth={1.8} />
-                  <p className="text-[10px] text-secondary-400">Largest file</p>
+              <div
+                style={{
+                  background: "#141414",
+                  border: "0.5px solid #1E1E1E",
+                  borderRadius: 6,
+                  padding: "10px 12px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    marginBottom: 6,
+                  }}
+                >
+                  <File
+                    style={{ width: 10, height: 10, color: "#333" }}
+                    strokeWidth={1.6}
+                  />
+                  <p
+                    style={{
+                      fontSize: 9,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: "#333",
+                      ...mono,
+                    }}
+                  >
+                    largest file
+                  </p>
                 </div>
-                <p className="text-sm font-medium text-secondary-800 truncate">{largestFile.name}</p>
-                <p className="text-xs text-secondary-500">{formatBytes(largestFile.size)}</p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "#C8C4BE",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    marginBottom: 2,
+                    ...mono,
+                  }}
+                >
+                  {largestFile.name}
+                </p>
+                <p style={{ fontSize: 10, color: "#444", ...mono }}>
+                  {formatBytes(largestFile.size)}
+                </p>
               </div>
             )}
           </div>
 
           <button
             onClick={() => navigate("/scanner")}
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-secondary-100 hover:bg-secondary-50 transition-colors text-xs text-secondary-500 hover:text-secondary-700"
+            style={{
+              width: "100%",
+              padding: "7px",
+              borderRadius: 6,
+              border: "0.5px solid #1E1E1E",
+              background: "transparent",
+              fontSize: 10,
+              color: "#444",
+              fontFamily: "var(--font-mono, monospace)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 5,
+              letterSpacing: "0.04em",
+            }}
           >
-            View full scan results
-            <ChevronRight className="w-3 h-3" strokeWidth={2} />
+            view full results
+            <ChevronRight style={{ width: 10, height: 10 }} strokeWidth={1.6} />
           </button>
         </div>
       )}
 
-      {/* Quick Insights */}
+      {/* Insights */}
       {insights.length > 0 && (
-        <div className="bg-white border border-secondary-100 rounded-xl p-5">
-          <p className="text-[11px] font-medium text-secondary-400 mb-3">possible space to free</p>
-          <div className="space-y-0.5">
+        <div style={card}>
+          <p style={sectionLabel}>possible to free</p>
+          <div>
             {insights.map((ins, i) => (
-              <div key={i} className="flex items-center justify-between py-2.5 border-b border-secondary-50 last:border-0">
-                <span className="text-sm text-secondary-600">{ins.label}</span>
-                <span className="text-sm font-medium text-secondary-800">{formatBytes(ins.size)}</span>
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "7px 0",
+                  borderBottom:
+                    i < insights.length - 1 ? "0.5px solid #161616" : "none",
+                }}
+              >
+                <span style={{ fontSize: 11, color: "#555", ...mono }}>
+                  {ins.label}
+                </span>
+                <span style={{ fontSize: 11, color: "#888", ...mono }}>
+                  {formatBytes(ins.size)}
+                </span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* System Info */}
-      <div className="bg-white border border-secondary-100 rounded-xl p-5">
-        <p className="text-[11px] font-medium text-secondary-400 mb-3">system information</p>
-        <div className="grid grid-cols-2 gap-4">
+      {/* System */}
+      <div style={card}>
+        <p style={sectionLabel}>system</p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 10,
+          }}
+        >
           <div>
-            <p className="text-[10px] text-secondary-400 mb-1">Operating system</p>
-            <p className="text-sm text-secondary-700">{systemInfo.os_name}</p>
+            <p
+              style={{
+                fontSize: 9,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#333",
+                marginBottom: 4,
+                ...mono,
+              }}
+            >
+              os
+            </p>
+            <p style={{ fontSize: 11, color: "#666", ...mono }}>
+              {systemInfo.os_name}
+            </p>
           </div>
           <div>
-            <p className="text-[10px] text-secondary-400 mb-1">Version</p>
-            <p className="text-sm text-secondary-700">{systemInfo.os_version}</p>
+            <p
+              style={{
+                fontSize: 9,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#333",
+                marginBottom: 4,
+                ...mono,
+              }}
+            >
+              version
+            </p>
+            <p style={{ fontSize: 11, color: "#666", ...mono }}>
+              {systemInfo.os_version}
+            </p>
           </div>
         </div>
       </div>
-
     </div>
-  )
+  );
 }
+
+// Add this to your global CSS or index.css:
+// @keyframes spin { to { transform: rotate(360deg); } }

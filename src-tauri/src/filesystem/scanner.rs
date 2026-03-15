@@ -45,7 +45,7 @@ use walkdir::WalkDir;
 
 /// Recursively scan `path` up to `max_depth` levels deep.
 /// Returns a rich [`ScanResult`] or a human-readable error string.
-pub async fn scan_directory(path: &str, max_depth: Option<usize>) -> Result<ScanResult, String> {
+pub async fn scan_directory(path: &str, max_depth: Option<usize>, ignore_hidden: bool, ignore_system: bool) -> Result<ScanResult, String> {
     let root = PathBuf::from(path);
 
     if !root.exists() {
@@ -61,7 +61,7 @@ pub async fn scan_directory(path: &str, max_depth: Option<usize>) -> Result<Scan
     // async executor.
     let root_clone = root.clone();
     let result = tokio::task::spawn_blocking(move || {
-        parallel_scan(&root_clone, max_depth)
+        parallel_scan(&root_clone, max_depth, ignore_hidden, ignore_system)
     })
     .await
     .map_err(|e| format!("Scan task panicked: {}", e))??;
@@ -141,8 +141,55 @@ pub async fn get_system_info() -> Result<SystemInfo, String> {
 
 // ── internals ────────────────────────────────────────────────────────────────
 
+/// Check if a file/directory should be ignored based on name and path
+fn should_ignore_entry(path: &Path, ignore_hidden: bool, ignore_system: bool) -> bool {
+    let file_name = match path.file_name() {
+        Some(name) => name.to_string_lossy(),
+        None => return false,
+    };
+
+    // Ignore hidden files (starting with .)
+    if ignore_hidden && file_name.starts_with('.') {
+        return true;
+    }
+
+    // Ignore system folders and files
+    if ignore_system {
+        let path_str = path.to_string_lossy();
+        
+        // Common system directories to ignore
+        let system_dirs = [
+            "System", "Library", "usr", "bin", "sbin", "etc", "var", "tmp",
+            "opt", "dev", "proc", "sys", "run", "mnt", "media", "lost+found",
+            "Windows", "Program Files", "Program Files (x86)", "ProgramData",
+            "System32", "SysWOW64", "Drivers", "DriverStore",
+        ];
+
+        let system_files = [
+            ".DS_Store", "Thumbs.db", "desktop.ini", ".git", ".svn", ".hg",
+            "node_modules", ".vscode", ".idea", ".cache", ".local",
+        ];
+
+        // Check if path contains any system directory
+        for system_dir in &system_dirs {
+            if path_str.contains(system_dir) {
+                return true;
+            }
+        }
+
+        // Check if file name matches any system file
+        for system_file in &system_files {
+            if file_name == *system_file {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
 /// Walk the filesystem synchronously (called inside `spawn_blocking`).
-fn parallel_scan(root: &Path, max_depth: usize) -> Result<ScanResult, String> {
+fn parallel_scan(root: &Path, max_depth: usize, ignore_hidden: bool, ignore_system: bool) -> Result<ScanResult, String> {
     let skipped = Arc::new(AtomicUsize::new(0));
     let skipped_clone = Arc::clone(&skipped);
 
@@ -158,6 +205,13 @@ fn parallel_scan(root: &Path, max_depth: usize) -> Result<ScanResult, String> {
     for entry in walker {
         match entry {
             Ok(e) => {
+                let path = e.path();
+                
+                // Skip ignored entries
+                if should_ignore_entry(path, ignore_hidden, ignore_system) {
+                    continue;
+                }
+                
                 if e.file_type().is_dir() {
                     all_dirs.push(e.into_path());
                 } else if e.file_type().is_file() {
