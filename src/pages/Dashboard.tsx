@@ -621,7 +621,7 @@ export function Dashboard() {
                 ...mono,
               }}
             >
-              os
+              operating system
             </p>
             <p style={{ fontSize: 11, color: "#666", ...mono }}>
               {systemInfo.os_name}

@@ -753,22 +753,32 @@ export function Settings() {
                 />
                 nookapp.pro
               </a>
-              <button
-                onClick={handleCheckUpdate}
+              <a
+                href="https://x.com/fiynraj"
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
                   flex: 1,
                   height: 28,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 5,
                   borderRadius: 5,
                   border: "0.5px solid #2A2A2A",
                   background: "transparent",
                   color: "#555",
                   fontSize: 10,
-                  cursor: "pointer",
+                  textDecoration: "none",
                   ...mono,
                 }}
               >
-                check for updates
-              </button>
+                <ExternalLink
+                  style={{ width: 10, height: 10 }}
+                  strokeWidth={1.6}
+                />
+                @fiynraj
+              </a>
             </div>
           </div>
         )}

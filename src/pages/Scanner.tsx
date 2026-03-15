@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Scan,
   FolderOpen,
@@ -11,28 +11,18 @@ import {
   FolderOpen as FolderOpenIcon,
   StopCircle,
 } from "lucide-react";
-import { ScanResult, ScanRequest, FileItem } from "@/types";
+import { FileItem } from "@/types";
 import { invoke } from "@tauri-apps/api/tauri";
 import { formatBytes } from "@/utils/format";
 import { Treemap } from "@/components/Treemap";
 import { LargestFiles } from "@/components/LargestFiles";
 import { FolderSizeChart } from "@/components/FolderSizeChart";
 import { StorageBreakdown } from "@/components/StorageBreakdown";
+import { useScanProgress } from "@/hooks/useScanProgress";
 
 interface SelectedItem {
   item: FileItem;
 }
-
-const SCAN_STEPS = [
-  "Applications",
-  "Downloads",
-  "Documents",
-  "Movies",
-  "Projects",
-  "node_modules",
-  "Library",
-  "Desktop",
-];
 
 const mono: React.CSSProperties = { fontFamily: "var(--font-mono, monospace)" };
 const card: React.CSSProperties = {
@@ -51,14 +41,8 @@ const label: React.CSSProperties = {
 };
 
 export function Scanner() {
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
-  const [scanStep, setScanStep] = useState("");
-  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [selectedPath, setSelectedPath] = useState("");
   const [maxDepth, setMaxDepth] = useState(3);
-  const [error, setError] = useState("");
   const [breadcrumb, setBreadcrumb] = useState<string[]>([]);
   const [treemapData, setTreemapData] = useState<FileItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
@@ -72,7 +56,18 @@ export function Scanner() {
   const [quickPaths, setQuickPaths] = useState<string[]>([]);
   const [ignoreHidden, setIgnoreHidden] = useState(true);
   const [ignoreSystem, setIgnoreSystem] = useState(true);
-  const scanAbortRef = useRef(false);
+
+  const {
+    scan,
+    cancel,
+    scanning,
+    progress,
+    filesFound,
+    bytesFound,
+    currentPath,
+    result: scanResult,
+    error,
+  } = useScanProgress();
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -122,60 +117,25 @@ export function Scanner() {
     }
   };
 
-  const simulateScanProgress = useCallback(async () => {
-    setScanProgress(0);
-    setCompletedSteps([]);
-    const steps = SCAN_STEPS.slice(0, 6 + Math.floor(Math.random() * 3));
-    for (let i = 0; i < steps.length; i++) {
-      if (scanAbortRef.current) break;
-      setScanStep(steps[i]);
-      setScanProgress(Math.round((i / steps.length) * 85));
-      await new Promise((r) => setTimeout(r, 300 + Math.random() * 400));
-      setCompletedSteps((prev) => [...prev, steps[i]]);
-    }
-    setScanProgress(95);
-  }, []);
-
   const handleScan = async () => {
     if (!selectedPath.trim()) {
-      setError("enter a directory path");
       return;
     }
-    setScanning(true);
-    setError("");
-    setScanResult(null);
     setSelectedItem(null);
-    scanAbortRef.current = false;
-    simulateScanProgress();
-    try {
-      const result = await invoke<ScanResult>("scan_directory", {
-        request: {
-          path: selectedPath.trim(),
-          max_depth: maxDepth,
-          ignore_hidden: ignoreHidden,
-          ignore_system: ignoreSystem,
-        } as ScanRequest,
-      });
-      setScanProgress(100);
-      await new Promise((r) => setTimeout(r, 200));
-      setScanResult(result);
+
+    await scan(selectedPath.trim(), maxDepth, ignoreHidden, ignoreSystem);
+
+    if (scanResult) {
       setLastScanTime(new Date());
-      const children = result.tree?.children || [];
+      const children = scanResult.tree?.children || [];
       setTreemapData(children);
       setFolderTree(children.filter((c) => c.is_directory));
       setBreadcrumb([selectedPath.split("/").pop() || selectedPath]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "scan failed");
-    } finally {
-      setScanning(false);
-      setScanStep("");
     }
   };
 
   const handleStop = () => {
-    scanAbortRef.current = true;
-    setScanning(false);
-    setScanStep("");
+    cancel();
   };
   const handleReveal = (path: string) =>
     invoke("reveal_in_finder", { path }).catch(console.error);
@@ -524,18 +484,6 @@ export function Scanner() {
             strokeWidth={1.6}
           />
           {error}
-          <button
-            onClick={() => setError("")}
-            style={{
-              marginLeft: "auto",
-              background: "none",
-              border: "none",
-              color: "#633806",
-              cursor: "pointer",
-            }}
-          >
-            <X style={{ width: 12, height: 12 }} />
-          </button>
         </div>
       )}
 
@@ -553,7 +501,7 @@ export function Scanner() {
               scanning {selectedPath}
             </span>
             <span style={{ fontSize: 11, color: "#444", ...mono }}>
-              {scanProgress}%
+              {progress}%
             </span>
           </div>
           <div
@@ -569,86 +517,58 @@ export function Scanner() {
               style={{
                 height: "100%",
                 background: "#2A2A2A",
-                width: `${scanProgress}%`,
+                width: `${progress}%`,
                 transition: "width 0.3s",
               }}
             />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {completedSteps.map((step) => (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 11,
+                color: "#666",
+                ...mono,
+              }}
+            >
               <div
-                key={step}
                 style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  border: "0.5px solid #2A2A2A",
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
-                  fontSize: 11,
-                  color: "#333",
-                  ...mono,
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
                 <div
                   style={{
-                    width: 14,
-                    height: 14,
+                    width: 5,
+                    height: 5,
                     borderRadius: "50%",
-                    background: "#161616",
-                    border: "0.5px solid #27500A",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
+                    background: "#444",
+                    animation: "pulse 1s infinite",
                   }}
-                >
-                  <svg viewBox="0 0 10 10" style={{ width: 8, height: 8 }}>
-                    <path
-                      d="M2 5l2 2 4-4"
-                      stroke="#3B6D11"
-                      strokeWidth="1.5"
-                      fill="none"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-                {step}
+                />
               </div>
-            ))}
-            {scanStep && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 11,
-                  color: "#666",
-                  ...mono,
-                }}
-              >
-                <div
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: "50%",
-                    border: "0.5px solid #2A2A2A",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: "50%",
-                      background: "#444",
-                      animation: "pulse 1s infinite",
-                    }}
-                  />
-                </div>
-                scanning {scanStep}…
-              </div>
-            )}
+              scanning {currentPath}…
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 10,
+                color: "#333",
+                ...mono,
+              }}
+            >
+              <span>{filesFound.toLocaleString()} files</span>
+              <span>{formatBytes(bytesFound)}</span>
+            </div>
           </div>
         </div>
       )}
