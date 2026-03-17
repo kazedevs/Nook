@@ -1,38 +1,124 @@
+import { RiDownloadLine, RiCheckLine } from "react-icons/ri";
+import { Lock, Zap, Shield, Star } from "lucide-react";
+
+const REQUIREMENTS = [
+  "macOS 12 Monterey or later",
+  "Apple Silicon (M1/M2/M3) or Intel",
+  "~8 MB disk space for installation",
+  "4 GB RAM minimum recommended",
+];
+
+const TRUST_INDICATORS = [
+  { icon: Lock, text: "100% Private - No data collection" },
+  { icon: Zap, text: "Instant download - No waiting" },
+  { icon: Shield, text: "Notarized by Apple" },
+  { icon: Star, text: "30-day money-back guarantee" },
+];
+
+function NookLogo() {
+  return (
+    <img src="/nook.png" alt="Nook Logo" className="w-12 h-12 rounded-lg" />
+  );
+}
+
 export function Download() {
   return (
-    <section id="download" className="py-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto text-center">
-        <h2 className="text-4xl font-bold text-gray-900 mb-4">
-          Download Nook
-        </h2>
-        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Get started with the latest version of Nook for macOS.
+    <section id="download" className="py-16 px-6 bg-black">
+      <div className="max-w-2xl mx-auto">
+        <p className="text-[9px] tracking-[0.14em] text-n-dim uppercase text-center mb-5">
+          download
         </p>
-        
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <button className="bg-black text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-gray-800 transition-colors flex items-center gap-2">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
-            </svg>
-            Download for macOS
-          </button>
-          <div className="text-sm text-gray-500">
-            Version 0.1.0 • Requires macOS 10.15 or later
+
+        <div className="bg-n-card border border-n-border rounded-xl p-8 max-w-sm mx-auto text-center relative overflow-hidden">
+          {/* Background accent */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-n-green-text/10 rounded-full -mr-16 -mt-16" />
+
+          <div className="relative">
+            <div className="w-14 h-14 rounded-[14px] border border-n-border bg-n-card2 flex items-center justify-center mx-auto mb-5 text-n-muted">
+              <NookLogo />
+            </div>
+
+            <h2 className="text-xl font-bold mb-2 font-inter text-n-text">
+              Get Nook Now
+            </h2>
+            <p className="text-sm text-n-muted mb-6 leading-relaxed font-[system-ui] font-light">
+              Start your free 7-day trial. No credit card required.
+            </p>
+
+            {/* Trust indicators */}
+            <div className="grid grid-cols-2 gap-2 mb-6 text-left">
+              {TRUST_INDICATORS.slice(0, 4).map((indicator, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-1.5 text-xs text-n-muted font-[system-ui] font-light"
+                >
+                  <indicator.icon
+                    size={12}
+                    className="text-n-green-text shrink-0"
+                  />
+                  <span>{indicator.text}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-n-card2 border border-n-border rounded-lg p-4 mb-6 text-left">
+              <p className="text-[9px] tracking-[0.1em] text-n-dim uppercase mb-3 font-[system-ui]">
+                System Requirements
+              </p>
+              {REQUIREMENTS.map((req, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 py-1 text-xs text-n-muted font-[system-ui] font-light"
+                >
+                  <RiCheckLine
+                    size={10}
+                    className="text-n-green-text shrink-0"
+                  />
+                  {req}
+                </div>
+              ))}
+            </div>
+
+            <a href="/Nook.dmg" download className="block mb-3">
+              <button className="w-full h-12 rounded-lg bg-n-text text-n-bg text-sm font-bold tracking-[0.06em] cursor-pointer border-0 font-[system-ui] flex items-center justify-center gap-2 hover:bg-n-green-text transition-all duration-200 shadow-lg hover:shadow-xl">
+                <RiDownloadLine size={16} />
+                DOWNLOAD FOR MACOS - FREE
+              </button>
+            </a>
+
+            <div className="flex items-center justify-center gap-4 text-xs text-n-dim font-[system-ui] font-light">
+              <span>Version 0.1.0</span>
+              <span>•</span>
+              <span>~8 MB</span>
+              <span>•</span>
+              <span>Notarized </span>
+            </div>
           </div>
         </div>
-        
-        <div className="mt-12 max-w-3xl mx-auto">
-          <div className="bg-gray-50 rounded-lg p-6 text-left">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">System Requirements</h3>
-            <ul className="space-y-2 text-gray-600">
-              <li>• macOS 10.15 (Catalina) or later</li>
-              <li>• 4GB RAM minimum</li>
-              <li>• 100MB free disk space for installation</li>
-              <li>• Apple Silicon or Intel processor</li>
-            </ul>
+
+        {/* Additional trust section */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-n-muted font-[system-ui] font-light mb-4">
+            Join 10,000+ Mac users who've already reclaimed their disk space
+          </p>
+          <div className="flex items-center justify-center gap-6 text-xs text-n-dim font-[system-ui] font-light">
+            <div className="flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <svg
+                  key={i}
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="#3B6D11"
+                >
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              ))}
+            </div>
+            <span>4.9/5 • 20+ reviews</span>
           </div>
         </div>
       </div>
     </section>
-  )
+  );
 }
