@@ -132,7 +132,7 @@ export function Download() {
             </div>
 
             <div className="flex items-center justify-center gap-4 text-xs text-n-dim font-[system-ui] font-light">
-              <span>Version 0.1.0</span>
+              <span>Version 0.1.1</span>
               <span>•</span>
               <span>~8 MB</span>
               <span>•</span>

@@ -419,7 +419,7 @@ export function Settings() {
                 <p className="text-xs text-[#C8C4BE] mb-0.5 font-mono">
                   installed version
                 </p>
-                <p className="text-[10px] text-[#666] font-mono">0.1.0</p>
+                <p className="text-[10px] text-[#666] font-mono">0.1.1</p>
               </div>
               <button
                 onClick={handleCheckUpdate}
@@ -498,7 +498,7 @@ export function Settings() {
             </p>
 
             {[
-              { k: "version", v: "0.1.0" },
+              { k: "version", v: "0.1.1" },
               {
                 k: "platform",
                 v: systemInfo

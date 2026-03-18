@@ -1,6 +1,6 @@
 {
   "name": "nook",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A lightweight desktop utility for macOS that helps users quickly see what is taking up space on their computer and clean it easily",
   "type": "module",
   "scripts": {

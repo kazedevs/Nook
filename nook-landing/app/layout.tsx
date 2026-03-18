@@ -9,6 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://usenook.vercel.app"),
   title: "Nook - Clean your Mac",
   description:
     "A lightweight disk utility for macOS. See what's taking up space and clean it — duplicates, dev junk, old files — in seconds.",
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
     siteName: "Nook",
     images: [
       {
-        url: "https://usenook.vercel.app/Nook-og.png",
+        url: "/Nook-og.png",
         width: 1200,
         height: 630,
         alt: "Nook - Clean your Mac",
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
     title: "Nook - Clean your Mac",
     description:
       "A lightweight disk utility for macOS. See what's taking up space and clean it — duplicates, dev junk, old files — in seconds.",
-    images: ["https://usenook.vercel.app/Nook-og.png"],
+    images: ["/Nook-og.png"],
   },
 };
 

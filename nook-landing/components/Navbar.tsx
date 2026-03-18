@@ -12,7 +12,11 @@ export function Navbar() {
       <div className="max-w-2xl mx-auto px-6 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-[22px] h-[22px] rounded-md border border-n-border2 bg-n-card2 flex items-center justify-center shrink-0">
-            <Image src="/nook.png" alt="Nook Logo" width={22} height={22} className="rounded-md" />
+            <img
+              src="/nook.png"
+              alt="Nook Logo"
+              className="w-[22px] h-[22px] rounded-md"
+            />
           </div>
           <span className="text-[13px] font-medium text-n-text tracking-tight">
             nook

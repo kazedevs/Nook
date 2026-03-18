@@ -265,7 +265,7 @@ pub async fn delete_paths(request: DeletePathsRequest) -> Result<DeletePathsResp
 pub async fn check_for_updates() -> Result<crate::filesystem::models::UpdateInfo, String> {
     use crate::filesystem::models::UpdateInfo;
     
-    let current_version = "0.1.0".to_string();
+    let current_version = "0.1.1".to_string();
     
     // Check GitHub releases for updates
     match check_github_releases(&current_version).await {

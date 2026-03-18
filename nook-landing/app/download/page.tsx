@@ -13,7 +13,7 @@ import {
 import { Suspense } from "react";
 
 const DOWNLOAD_URL =
-  "https://github.com/kazedevs/Nook/releases/download/v0.1.0/Nook_0.1.0_aarch64.dmg";
+  "https://github.com/kazedevs/Nook/releases/download/v0.1.1/Nook_0.1.1_aarch64.dmg";
 
 const STEPS = [
   "download Nook.dmg",
@@ -95,7 +95,7 @@ function DownloadPageContent() {
           </a>
 
           <div className="flex items-center justify-between text-[10px] text-n-dim font-mono">
-            <span>v0.1.0 · ~8 MB</span>
+            <span>v0.1.1 · ~8 MB</span>
             <span>Apple Silicon + Intel (Rosetta)</span>
           </div>
         </div>

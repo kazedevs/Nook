@@ -187,16 +187,8 @@ export function Hero() {
           }}
         >
           {/* Video */}
-          <div className="aspect-video">
-            <video
-              className="w-full h-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
-            >
-              <source src="/demo.mp4" type="video/mp4" />
-            </video>
+          <div className="aspect-video bg-n-card border border-n-border rounded-xl flex items-center justify-center">
+            <p className="text-n-muted text-sm">Demo video loading...</p>
           </div>
         </motion.div>
 
