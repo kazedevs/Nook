@@ -55,8 +55,8 @@ export default function ReturnPage() {
             your payment went through but we couldn't read the license key.
             <br />
             check your email or{" "}
-            <a href="mailto:support@nookapp.com" className="underline">
-              contact support
+            <a href="https://x.com/fiynraj" className="underline">
+              contact support on X
             </a>
             .
           </p>
@@ -172,7 +172,12 @@ export default function ReturnPage() {
 
         <p className="text-[10px] text-n-dim text-center">
           key also sent to {email ?? "your email"} · need help?
-          support@nookapp.com
+          <a
+            href="https://x.com/fiynraj"
+            className="text-n-green-text hover:text-n-green-text/80 transition-colors"
+          >
+            @fiynraj
+          </a>
         </p>
       </div>
     </div>

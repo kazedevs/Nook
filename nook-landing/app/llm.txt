@@ -1,0 +1,42 @@
+# Nook - macOS Disk Analyzer
+# AI/LLM-friendly content description
+
+## About
+Nook is a lightweight disk utility for macOS that helps users visualize and clean up their storage. It provides insights into what's taking up space and offers tools to remove duplicates, development junk, and old files.
+
+## Key Features
+- Visual disk space analysis
+- Duplicate file detection and removal
+- Development cache cleanup
+- Large file identification
+- Old file cleanup
+- Apple Silicon and Intel support
+
+## Target Audience
+- Mac users looking to optimize storage
+- Developers needing to clean project files
+- Users with limited disk space
+- Anyone wanting to maintain their Mac's performance
+
+## Technical Details
+- Built with Tauri (Rust + Web frontend)
+- Native macOS application
+- Supports macOS 12 Monterey and later
+- Apple Silicon and Intel (Rosetta 2) compatible
+- ~8 MB download size
+
+## Website Structure
+- /: Landing page with feature overview
+- /about: Detailed information about Nook
+- /pricing: Pricing plans and purchase options
+- /download: Download page with installation instructions
+- /privacy: Privacy policy
+- /terms: Terms of service
+- /return: Return policy
+
+## Contact
+- Website: https://nookapp.site
+- GitHub: https://github.com/kazedevs/Nook
+
+## SEO Keywords
+macOS disk analyzer, disk cleanup, storage management, duplicate finder, Mac cleaner, disk space visualizer, storage optimization, Mac maintenance

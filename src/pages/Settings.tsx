@@ -454,18 +454,17 @@ export function Settings() {
             <div className={rowClass}>
               <div>
                 <p className="text-xs text-[#C8C4BE] mb-0.5 font-mono">
-                  email support
+                  support
                 </p>
                 <p className="text-[10px] text-[#666] font-mono">
-                  get help via email
+                  get help on X
                 </p>
               </div>
               <a
-                href="mailto:support@nookapp.pro"
+                href="https://x.com/fiynraj"
                 className="h-7 px-3 rounded-md border border-[#2A2A2A] bg-transparent text-[#777] text-[10px] cursor-pointer flex items-center gap-[5px] no-underline font-mono"
               >
-                <Mail className="w-[11px] h-[11px]" strokeWidth={1.6} />
-                email
+                <Mail className="w-[11px] h-[11px]" strokeWidth={1.6} />X
               </a>
             </div>
 
@@ -521,7 +520,7 @@ export function Settings() {
 
             <div className="mt-3.5 flex gap-2">
               {[
-                { href: "https://nookapp.pro", label: "nookapp.pro" },
+                { href: "https://nookapp.site", label: "nookapp.site" },
                 { href: "https://x.com/fiynraj", label: "@fiynraj" },
               ].map(({ href, label }) => (
                 <a

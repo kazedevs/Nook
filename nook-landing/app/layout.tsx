@@ -12,6 +12,28 @@ export const metadata: Metadata = {
   title: "Nook - Clean your Mac",
   description:
     "A lightweight disk utility for macOS. See what's taking up space and clean it — duplicates, dev junk, old files — in seconds.",
+  openGraph: {
+    title: "Nook - Clean your Mac",
+    description:
+      "A lightweight disk utility for macOS. See what's taking up space and clean it — duplicates, dev junk, old files — in seconds.",
+    images: [
+      {
+        url: "/Nook-og.png",
+        width: 1200,
+        height: 630,
+        alt: "Nook - Clean your Mac",
+      },
+    ],
+    type: "website",
+    url: "https://nookapp.site",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nook - Clean your Mac",
+    description:
+      "A lightweight disk utility for macOS. See what's taking up space and clean it — duplicates, dev junk, old files — in seconds.",
+    images: ["/Nook-og.png"],
+  },
 };
 
 export default function RootLayout({

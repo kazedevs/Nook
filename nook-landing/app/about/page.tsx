@@ -68,9 +68,6 @@ export default function About() {
             </p>
             <div className="mt-4 space-y-2">
               <p className="text-n-muted font-[system-ui] font-light">
-                Email: <a href="mailto:support@nookapp.com" className="text-n-green-text hover:text-n-green-text/80 transition-colors">support@nookapp.com</a>
-              </p>
-              <p className="text-n-muted font-[system-ui] font-light">
                 Twitter: <a href="https://twitter.com/fiynraj" className="text-n-green-text hover:text-n-green-text/80 transition-colors">@fiynraj</a>
               </p>
             </div>
