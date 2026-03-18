@@ -3,43 +3,43 @@ import { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: "https://nookapp.site",
+      url: "https://usenook.vercel.app",
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 1,
     },
     {
-      url: "https://nookapp.site/about",
+      url: "https://usenook.vercel.app/about",
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: "https://nookapp.site/pricing",
+      url: "https://usenook.vercel.app/pricing",
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
-      url: "https://nookapp.site/download",
+      url: "https://usenook.vercel.app/download",
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
-      url: "https://nookapp.site/privacy",
+      url: "https://usenook.vercel.app/privacy",
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: "https://nookapp.site/terms",
+      url: "https://usenook.vercel.app/terms",
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: "https://nookapp.site/return",
+      url: "https://usenook.vercel.app/return",
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.5,

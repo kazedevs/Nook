@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/payment/"],
       },
     ],
-    sitemap: "https://nookapp.site/sitemap.xml",
+    sitemap: "https://usenook.vercel.app/sitemap.xml",
   };
 }

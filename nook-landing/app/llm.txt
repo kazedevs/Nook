@@ -35,7 +35,7 @@ Nook is a lightweight disk utility for macOS that helps users visualize and clea
 - /return: Return policy
 
 ## Contact
-- Website: https://nookapp.site
+- Website: https://usenook.vercel.app
 - GitHub: https://github.com/kazedevs/Nook
 
 ## SEO Keywords

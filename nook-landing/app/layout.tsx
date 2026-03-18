@@ -16,23 +16,24 @@ export const metadata: Metadata = {
     title: "Nook - Clean your Mac",
     description:
       "A lightweight disk utility for macOS. See what's taking up space and clean it — duplicates, dev junk, old files — in seconds.",
+    siteName: "Nook",
     images: [
       {
-        url: "/Nook-og.png",
+        url: "https://usenook.vercel.app/Nook-og.png",
         width: 1200,
         height: 630,
         alt: "Nook - Clean your Mac",
       },
     ],
     type: "website",
-    url: "https://nookapp.site",
+    url: "https://usenook.vercel.app",
   },
   twitter: {
     card: "summary_large_image",
     title: "Nook - Clean your Mac",
     description:
       "A lightweight disk utility for macOS. See what's taking up space and clean it — duplicates, dev junk, old files — in seconds.",
-    images: ["/Nook-og.png"],
+    images: ["https://usenook.vercel.app/Nook-og.png"],
   },
 };
 

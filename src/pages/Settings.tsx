@@ -520,7 +520,7 @@ export function Settings() {
 
             <div className="mt-3.5 flex gap-2">
               {[
-                { href: "https://nookapp.site", label: "nookapp.site" },
+                { href: "https://usenook.vercel.app", label: "usenook.vercel.app" },
                 { href: "https://x.com/fiynraj", label: "@fiynraj" },
               ].map(({ href, label }) => (
                 <a
