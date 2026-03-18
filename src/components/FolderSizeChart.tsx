@@ -13,18 +13,6 @@ const COLORS = [
   "#0C447C",
   "#3B6D11",
 ];
-const BG_COLORS = [
-  "#1E2A1A",
-  "#1A1E2A",
-  "#221A2A",
-  "#2A1E1A",
-  "#2A2A1A",
-  "#1A2A26",
-  "#1E1E1E",
-  "#2A1A22",
-  "#1A2228",
-  "#1E2620",
-];
 
 const mono: React.CSSProperties = { fontFamily: "var(--font-mono, monospace)" };
 const card: React.CSSProperties = {

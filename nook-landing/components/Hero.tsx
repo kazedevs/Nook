@@ -1,19 +1,36 @@
 "use client";
 
-import { RiDownloadLine, RiArrowRightLine } from "react-icons/ri";
+import { useState } from "react";
+import {
+  RiDownloadLine,
+  RiArrowRightLine,
+  RiFileCopyLine,
+  RiCheckLine,
+} from "react-icons/ri";
 
 export function Hero() {
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = async () => {
+    const command = "xattr -rd com.apple.quarantine /Applications/Nook.app";
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   return (
     <section className="relative overflow-hidden pt-[180px] pb-[120px] bg-black">
       <div className="max-w-[1040px] mx-auto px-6">
         {/* Headline */}
         <h1
-          className="font-bold tracking-[-0.03em] leading-[1.05] mb-6 font-inter"
+          className="font-bold tracking-[-0.06em] leading-[1.05] mb-6 font-inter"
           style={{ fontSize: "clamp(44px, 6vw, 70px)", color: "#fff" }}
         >
-          Reclaim your Mac's
-          <br />
-          <span style={{ color: "rgba(255,255,255,0.28)" }}>wasted space.</span>
+          Reclaim your Mac's <br /> wasted space.
         </h1>
 
         {/* Sub */}
@@ -27,7 +44,7 @@ export function Hero() {
 
         {/* CTAs */}
         <div className="flex items-center gap-3 flex-wrap mb-5">
-          <a href="#download">
+          <a href="/pricing">
             <button
               className="h-[42px] px-[22px] flex items-center gap-2 rounded-lg text-[11px] font-bold tracking-[0.07em] font-[system-ui] border-none cursor-pointer transition-opacity duration-150 hover:opacity-85"
               style={{ background: "#fff", color: "#000" }}
@@ -48,6 +65,41 @@ export function Hero() {
               <RiArrowRightLine size={12} />
             </button>
           </a>
+        </div>
+
+        {/* Command section with white background */}
+        <div className="mb-5">
+          <p
+            className="text-[10px] mb-1 font-[system-ui]"
+            style={{ color: "#666" }}
+          >
+            macOS: Run after install to bypass "App Damaged/Could not verify
+            safe"
+          </p>
+          <div className="flex items-center gap-3">
+            <div
+              className="p-2 rounded-lg inline-block"
+              style={{ backgroundColor: "#fff" }}
+            >
+              <code className="text-[11px] font-mono text-black font-medium">
+                xattr -rd com.apple.quarantine /Applications/Nook.app
+              </code>
+            </div>
+            <button
+              onClick={copyToClipboard}
+              className="flex items-center gap-1 px-2 py-1 text-[12px] transition-colors cursor-pointer rounded font-[system-ui]"
+              style={{
+                color: "#fff",
+              }}
+            >
+              {copied ? (
+                <RiCheckLine size={12} />
+              ) : (
+                <RiFileCopyLine size={12} />
+              )}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
         </div>
 
         {/* Social proof + fine print — same line */}

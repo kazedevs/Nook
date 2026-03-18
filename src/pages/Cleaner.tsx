@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
+import { listen } from "@tauri-apps/api/event";
 import { formatBytes } from "@/utils/format";
 import {
   Trash2,
   ExternalLink,
   ChevronDown,
   ChevronRight,
-  Zap,
   AlertCircle,
 } from "lucide-react";
 
@@ -50,30 +50,6 @@ interface AnalysisReport {
   total_reclaimable: number;
 }
 
-const mono: React.CSSProperties = { fontFamily: "var(--font-mono, monospace)" };
-const card: React.CSSProperties = {
-  background: "#0F0F0F",
-  border: "0.5px solid #1E1E1E",
-  borderRadius: 8,
-  padding: "14px 16px",
-  marginBottom: 10,
-};
-const lbl: React.CSSProperties = {
-  fontSize: 9,
-  letterSpacing: "0.1em",
-  textTransform: "uppercase" as const,
-  color: "#444",
-  marginBottom: 10,
-  ...mono,
-};
-const row: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "7px 0",
-  borderBottom: "0.5px solid #161616",
-};
-
 const DEV_KIND_LABEL: Record<string, string> = {
   node_modules: "node_modules",
   package_manager: "npm / pnpm / yarn cache",
@@ -95,20 +71,10 @@ function DeleteButton({
   const [confirm, setConfirm] = useState(false);
   if (confirm)
     return (
-      <div style={{ display: "flex", gap: 4 }}>
+      <div className="flex gap-1">
         <button
           onClick={() => setConfirm(false)}
-          style={{
-            height: 22,
-            padding: "0 8px",
-            borderRadius: 4,
-            border: "0.5px solid #2A2A2A",
-            background: "transparent",
-            color: "#555",
-            fontSize: 10,
-            cursor: "pointer",
-            ...mono,
-          }}
+          className="h-[22px] px-2 rounded border border-[#2A2A2A] bg-transparent text-[#555] text-[10px] cursor-pointer font-mono"
         >
           cancel
         </button>
@@ -117,17 +83,7 @@ function DeleteButton({
             setConfirm(false);
             onDelete();
           }}
-          style={{
-            height: 22,
-            padding: "0 8px",
-            borderRadius: 4,
-            border: "0.5px solid #2A1800",
-            background: "#0D0900",
-            color: "#633806",
-            fontSize: 10,
-            cursor: "pointer",
-            ...mono,
-          }}
+          className="h-[22px] px-2 rounded border border-[#2A1800] bg-[#0D0900] text-[#633806] text-[10px] cursor-pointer font-mono"
         >
           confirm
         </button>
@@ -136,25 +92,19 @@ function DeleteButton({
   return (
     <button
       onClick={() => setConfirm(true)}
-      style={{
-        height: 22,
-        padding: "0 8px",
-        borderRadius: 4,
-        border: "0.5px solid #1E1E1E",
-        background: "transparent",
-        color: "#444",
-        fontSize: 10,
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        gap: 4,
-        ...mono,
-      }}
+      className="h-[22px] px-2 rounded border border-[#1E1E1E] bg-transparent text-[#444] text-[10px] cursor-pointer flex items-center gap-1 font-mono"
     >
-      <Trash2 style={{ width: 11, height: 11 }} strokeWidth={1.6} />
+      <Trash2 className="w-[11px] h-[11px]" strokeWidth={1.6} />
       {size ? formatBytes(size) : "delete"}
     </button>
   );
+}
+
+interface AnalysisProgress {
+  stage: string;
+  progress: number;
+  message: string;
+  files_processed: number;
 }
 
 export function Cleaner() {
@@ -165,9 +115,20 @@ export function Cleaner() {
   const [freed, setFreed] = useState(0);
   const [expandedDups, setExpandedDups] = useState<Set<string>>(new Set());
   const [deletedPaths, setDeletedPaths] = useState<Set<string>>(new Set());
+  const [analysisProgress, setAnalysisProgress] =
+    useState<AnalysisProgress | null>(null);
 
   useEffect(() => {
     invoke<string>("get_user_home").then(setHomePath).catch(console.error);
+
+    // Set up progress listener
+    const unlisten = listen<AnalysisProgress>("analysis_progress", (event) => {
+      setAnalysisProgress(event.payload);
+    });
+
+    return () => {
+      unlisten.then((unlistenFn) => unlistenFn?.()).catch(console.error);
+    };
   }, []);
 
   const runAnalysis = async () => {
@@ -177,6 +138,8 @@ export function Cleaner() {
     setReport(null);
     setFreed(0);
     setDeletedPaths(new Set());
+    setAnalysisProgress(null);
+
     try {
       const result = await invoke<AnalysisReport>("run_analysis", {
         request: {
@@ -187,8 +150,10 @@ export function Cleaner() {
         },
       });
       setReport(result);
+      setAnalysisProgress(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      setAnalysisProgress(null);
     } finally {
       setRunning(false);
     }
@@ -198,9 +163,7 @@ export function Cleaner() {
     try {
       const resp = await invoke<{ freed_bytes: number; deleted_count: number }>(
         "delete_paths",
-        {
-          request: { paths },
-        },
+        { request: { paths } },
       );
       setFreed((f) => f + resp.freed_bytes);
       setDeletedPaths((prev) => {
@@ -224,34 +187,19 @@ export function Cleaner() {
     });
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        maxWidth: 760,
-      }}
-    >
+    <div className="flex flex-col gap-2.5 max-w-xl mx-auto p-2.5">
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
+      <div className="flex items-center justify-between">
         <div>
-          <p
-            style={{ fontSize: 16, fontWeight: 500, color: "#E8E6E1", ...mono }}
-          >
+          <p className="text-base font-medium text-[#E8E6E1] font-mono">
             cleaner
           </p>
-          <p style={{ fontSize: 10, color: "#444", marginTop: 2, ...mono }}>
+          <p className="text-[10px] text-[#444] mt-0.5 font-mono">
             {report ? `scanning ${homePath}` : "find wasted space"}
           </p>
         </div>
         {report && freed > 0 && (
-          <span style={{ fontSize: 11, color: "#3B6D11", ...mono }}>
+          <span className="text-[11px] text-[#3B6D11] font-mono">
             +{formatBytes(freed)} freed
           </span>
         )}
@@ -259,44 +207,16 @@ export function Cleaner() {
 
       {/* Run button / summary */}
       {!report && !running && (
-        <div
-          style={{
-            ...card,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            padding: "32px 20px",
-            gap: 12,
-          }}
-        >
-          <p style={{ fontSize: 13, color: "#555", ...mono }}>
+        <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg flex flex-col items-center px-5 py-8 gap-3">
+          <p className="text-[13px] text-[#555] font-mono">
             ready to scan {homePath || "home directory"}
           </p>
-          <p
-            style={{
-              fontSize: 11,
-              color: "#333",
-              textAlign: "center",
-              lineHeight: 1.7,
-              maxWidth: 360,
-              ...mono,
-            }}
-          >
+          <p className="text-[11px] text-[#333] text-center leading-[1.7] max-w-[360px] font-mono">
             finds duplicate files, old large files, and developer junk
           </p>
           <button
             onClick={runAnalysis}
-            style={{
-              height: 34,
-              padding: "0 20px",
-              borderRadius: 6,
-              border: "0.5px solid #2A2A2A",
-              background: "#1A1A1A",
-              color: "#E8E6E1",
-              fontSize: 12,
-              cursor: "pointer",
-              ...mono,
-            }}
+            className="h-[34px] px-5 rounded border border-[#2A2A2A] bg-[#1A1A1A] text-[#E8E6E1] text-xs cursor-pointer font-mono"
           >
             run analysis
           </button>
@@ -304,87 +224,59 @@ export function Cleaner() {
       )}
 
       {running && (
-        <div style={card}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              justifyContent: "center",
-              padding: "20px 0",
-            }}
-          >
-            <div
-              style={{
-                width: 14,
-                height: 14,
-                borderRadius: "50%",
-                border: "1.5px solid #222",
-                borderTopColor: "#555",
-                animation: "spin 0.8s linear infinite",
-                flexShrink: 0,
-              }}
-            />
-            <p style={{ fontSize: 12, color: "#555", ...mono }}>
-              analysing {homePath}…
+        <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+          <div className="flex items-center gap-2.5 justify-center py-5">
+            <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-[#222] border-t-[#555] animate-spin flex-shrink-0" />
+            <p className="text-xs text-[#555] font-mono">
+              {analysisProgress
+                ? analysisProgress.message
+                : `analysing ${homePath}…`}
             </p>
           </div>
+          {analysisProgress && (
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center justify-between text-[10px] font-mono">
+                <span className="text-[#444]">{analysisProgress.stage}</span>
+                <span className="text-[#555]">
+                  {analysisProgress.progress}%
+                </span>
+              </div>
+              <div className="w-full bg-[#1A1A1A] rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="h-full bg-[#3B6D11] transition-all duration-300 ease-out"
+                  style={{ width: `${analysisProgress.progress}%` }}
+                />
+              </div>
+              {analysisProgress.files_processed > 0 && (
+                <p className="text-[9px] text-[#333] text-center font-mono">
+                  {analysisProgress.files_processed.toLocaleString()} files
+                  processed
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       {error && (
-        <div
-          style={{
-            background: "#0D0900",
-            border: "0.5px solid #2A1800",
-            borderRadius: 8,
-            padding: "10px 14px",
-            display: "flex",
-            gap: 8,
-            alignItems: "center",
-          }}
-        >
+        <div className="bg-[#0D0900] border border-[#2A1800] rounded-lg px-3.5 py-2.5 flex gap-2 items-center">
           <AlertCircle
-            style={{ width: 13, height: 13, color: "#633806", flexShrink: 0 }}
+            className="w-[13px] h-[13px] text-[#633806] flex-shrink-0"
             strokeWidth={1.6}
           />
-          <p style={{ fontSize: 11, color: "#633806", ...mono }}>{error}</p>
+          <p className="text-[11px] text-[#633806] font-mono">{error}</p>
         </div>
       )}
 
       {report && (
         <>
           {/* Summary banner */}
-          <div
-            style={{
-              background: "#0A1A08",
-              border: "0.5px solid #27500A",
-              borderRadius: 8,
-              padding: "14px 16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+          <div className="bg-[#0A1A08] border border-[#27500A] rounded-lg px-4 py-3.5 flex items-center justify-between">
             <div>
-              <p
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: "#3B6D11",
-                  ...mono,
-                }}
-              >
+              <p className="text-[13px] font-medium text-[#3B6D11] font-mono">
                 nook found {formatBytes(report.total_reclaimable)} you can clean
               </p>
-              <p
-                style={{
-                  fontSize: 10,
-                  color: "#27500A",
-                  marginTop: 3,
-                  ...mono,
-                }}
-              >
+              <p className="text-[10px] text-[#27500A] mt-[3px] font-mono">
                 {report.duplicate_groups.length} duplicate groups ·{" "}
                 {report.old_large_files.length} old large files ·{" "}
                 {report.dev_junk.items.length} dev junk items
@@ -392,17 +284,7 @@ export function Cleaner() {
             </div>
             <button
               onClick={runAnalysis}
-              style={{
-                height: 28,
-                padding: "0 12px",
-                borderRadius: 6,
-                border: "0.5px solid #27500A",
-                background: "transparent",
-                color: "#3B6D11",
-                fontSize: 10,
-                cursor: "pointer",
-                ...mono,
-              }}
+              className="h-7 px-3 rounded border border-[#27500A] bg-transparent text-[#3B6D11] text-[10px] cursor-pointer font-mono"
             >
               rescan
             </button>
@@ -410,22 +292,17 @@ export function Cleaner() {
 
           {/* ── Duplicates ── */}
           {report.duplicate_groups.length > 0 && (
-            <div style={card}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 10,
-                }}
-              >
-                <p style={lbl}>duplicate files</p>
-                <span style={{ fontSize: 10, color: "#3B6D11", ...mono }}>
+            <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] font-mono">
+                  duplicate files
+                </p>
+                <span className="text-[10px] text-[#3B6D11] font-mono">
                   {formatBytes(report.total_duplicate_waste)} wasted
                 </span>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div className="flex flex-col gap-0.5">
                 {report.duplicate_groups.slice(0, 20).map((group) => {
                   const expanded = expandedDups.has(group.hash);
                   const allDeleted = group.files.every((f) =>
@@ -435,70 +312,26 @@ export function Cleaner() {
                   return (
                     <div
                       key={group.hash}
-                      style={{
-                        background: "#141414",
-                        border: "0.5px solid #1E1E1E",
-                        borderRadius: 6,
-                        overflow: "hidden",
-                      }}
+                      className="bg-[#141414] border border-[#1E1E1E] rounded-md overflow-hidden"
                     >
-                      {/* Group header */}
                       <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          padding: "8px 10px",
-                          cursor: "pointer",
-                        }}
+                        className="flex items-center gap-2 px-2.5 py-2 cursor-pointer"
                         onClick={() => toggleDup(group.hash)}
                       >
                         {expanded ? (
-                          <ChevronDown
-                            style={{
-                              width: 11,
-                              height: 11,
-                              color: "#444",
-                              flexShrink: 0,
-                            }}
-                          />
+                          <ChevronDown className="w-[11px] h-[11px] text-[#444] flex-shrink-0" />
                         ) : (
-                          <ChevronRight
-                            style={{
-                              width: 11,
-                              height: 11,
-                              color: "#444",
-                              flexShrink: 0,
-                            }}
-                          />
+                          <ChevronRight className="w-[11px] h-[11px] text-[#444] flex-shrink-0" />
                         )}
-                        <span
-                          style={{
-                            flex: 1,
-                            fontSize: 12,
-                            color: "#888",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            ...mono,
-                          }}
-                        >
+                        <span className="flex-1 text-xs text-[#888] overflow-hidden text-ellipsis whitespace-nowrap font-mono">
                           {group.files[0].name}
                         </span>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            color: "#444",
-                            flexShrink: 0,
-                            ...mono,
-                          }}
-                        >
+                        <span className="text-[10px] text-[#444] flex-shrink-0 font-mono">
                           {group.files.length}x · {formatBytes(group.size)} each
                         </span>
                         <DeleteButton
                           size={group.total_wasted}
                           onDelete={() => {
-                            // Keep the first (newest/best), delete the rest
                             const toDelete = group.files
                               .slice(1)
                               .map((f) => f.path);
@@ -507,87 +340,42 @@ export function Cleaner() {
                         />
                       </div>
 
-                      {/* Expanded file list */}
                       {expanded && (
-                        <div style={{ borderTop: "0.5px solid #1E1E1E" }}>
+                        <div className="border-t border-[#1E1E1E]">
                           {group.files.map((file, i) => (
                             <div
                               key={file.path}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                padding: "6px 10px 6px 28px",
-                                borderBottom:
-                                  i < group.files.length - 1
-                                    ? "0.5px solid #1A1A1A"
-                                    : "none",
-                                opacity: deletedPaths.has(file.path) ? 0.3 : 1,
-                              }}
+                              className={`flex items-center gap-2 py-1.5 px-2.5 pl-7 ${
+                                i < group.files.length - 1
+                                  ? "border-b border-[#1A1A1A]"
+                                  : ""
+                              } ${deletedPaths.has(file.path) ? "opacity-30" : "opacity-100"}`}
                             >
-                              {i === 0 && (
-                                <span
-                                  style={{
-                                    fontSize: 9,
-                                    color: "#3B6D11",
-                                    width: 32,
-                                    flexShrink: 0,
-                                    ...mono,
-                                  }}
-                                >
+                              {i === 0 ? (
+                                <span className="text-[9px] text-[#3B6D11] w-8 flex-shrink-0 font-mono">
                                   keep
                                 </span>
-                              )}
-                              {i > 0 && (
-                                <span
-                                  style={{
-                                    fontSize: 9,
-                                    color: "#444",
-                                    width: 32,
-                                    flexShrink: 0,
-                                    ...mono,
-                                  }}
-                                >
+                              ) : (
+                                <span className="text-[9px] text-[#444] w-8 flex-shrink-0 font-mono">
                                   dupe
                                 </span>
                               )}
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <p
-                                  style={{
-                                    fontSize: 11,
-                                    color: "#666",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    ...mono,
-                                  }}
-                                >
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] text-[#666] overflow-hidden text-ellipsis whitespace-nowrap font-mono">
                                   {file.path}
                                 </p>
                                 {file.modified && (
-                                  <p
-                                    style={{
-                                      fontSize: 9,
-                                      color: "#333",
-                                      ...mono,
-                                    }}
-                                  >
+                                  <p className="text-[9px] text-[#333] font-mono">
                                     modified {file.modified.slice(0, 10)}
                                   </p>
                                 )}
                               </div>
                               <button
                                 onClick={() => reveal(file.path)}
-                                style={{
-                                  background: "none",
-                                  border: "none",
-                                  color: "#333",
-                                  cursor: "pointer",
-                                  padding: 2,
-                                }}
+                                className="bg-transparent border-none text-[#333] cursor-pointer p-0.5"
                               >
                                 <ExternalLink
-                                  style={{ width: 11, height: 11 }}
+                                  className="w-[11px] h-[11px]"
                                   strokeWidth={1.6}
                                 />
                               </button>
@@ -605,7 +393,6 @@ export function Cleaner() {
                 })}
               </div>
 
-              {/* Delete all duplicates */}
               <button
                 onClick={() => {
                   const toDelete = report.duplicate_groups
@@ -613,18 +400,7 @@ export function Cleaner() {
                     .filter((p) => !deletedPaths.has(p));
                   deletePaths(toDelete);
                 }}
-                style={{
-                  marginTop: 10,
-                  width: "100%",
-                  height: 30,
-                  borderRadius: 6,
-                  border: "0.5px solid #2A1800",
-                  background: "#0D0900",
-                  color: "#633806",
-                  fontSize: 10,
-                  cursor: "pointer",
-                  ...mono,
-                }}
+                className="mt-2.5 w-full h-[30px] rounded border border-[#2A1800] bg-[#0D0900] text-[#633806] text-[10px] cursor-pointer font-mono"
               >
                 delete all duplicates (keep originals)
               </button>
@@ -633,17 +409,12 @@ export function Cleaner() {
 
           {/* ── Old large files ── */}
           {report.old_large_files.length > 0 && (
-            <div style={card}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 10,
-                }}
-              >
-                <p style={lbl}>old large files</p>
-                <span style={{ fontSize: 10, color: "#854F0B", ...mono }}>
+            <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] font-mono">
+                  old large files
+                </p>
+                <span className="text-[10px] text-[#854F0B] font-mono">
                   not opened in 6+ months
                 </span>
               </div>
@@ -655,65 +426,31 @@ export function Cleaner() {
                   .map((file, i, arr) => (
                     <div
                       key={file.path}
-                      style={{
-                        ...row,
-                        borderBottom:
-                          i < arr.length - 1 ? "0.5px solid #161616" : "none",
-                      }}
+                      className={`flex items-center py-2 ${
+                        i < arr.length - 1 ? "border-b border-[#161616]" : ""
+                      }`}
                     >
-                      <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
-                        <p
-                          style={{
-                            fontSize: 12,
-                            color: "#888",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            ...mono,
-                          }}
-                        >
+                      <div className="flex-1 min-w-0 mr-3">
+                        <p className="text-xs text-[#888] overflow-hidden text-ellipsis whitespace-nowrap font-mono">
                           {file.name}
                         </p>
-                        <p
-                          style={{
-                            fontSize: 9,
-                            color: "#333",
-                            marginTop: 2,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            ...mono,
-                          }}
-                        >
+                        <p className="text-[9px] text-[#333] mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap font-mono">
                           {file.path}
                         </p>
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <span style={{ fontSize: 10, color: "#444", ...mono }}>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-[10px] text-[#444] font-mono">
                           {file.last_accessed_days}d ago
                         </span>
-                        <span style={{ fontSize: 10, color: "#555", ...mono }}>
+                        <span className="text-[10px] text-[#555] font-mono">
                           {formatBytes(file.size)}
                         </span>
                         <button
                           onClick={() => reveal(file.path)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "#333",
-                            cursor: "pointer",
-                            padding: 2,
-                          }}
+                          className="bg-transparent border-none text-[#333] cursor-pointer p-0.5"
                         >
                           <ExternalLink
-                            style={{ width: 11, height: 11 }}
+                            className="w-[11px] h-[11px]"
                             strokeWidth={1.6}
                           />
                         </button>
@@ -729,75 +466,34 @@ export function Cleaner() {
 
           {/* ── Developer junk ── */}
           {report.dev_junk.items.length > 0 && (
-            <div style={card}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 10,
-                }}
-              >
-                <p style={lbl}>developer junk</p>
-                <span style={{ fontSize: 10, color: "#854F0B", ...mono }}>
+            <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] font-mono">
+                  developer junk
+                </p>
+                <span className="text-[10px] text-[#854F0B] font-mono">
                   {formatBytes(report.dev_junk.total_size)} total
                 </span>
               </div>
 
               {/* By-kind summary */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                  marginBottom: 12,
-                }}
-              >
+              <div className="flex flex-col gap-1.5 mb-3">
                 {Object.entries(report.dev_junk.by_kind)
                   .sort(([, a], [, b]) => b - a)
                   .map(([kind, size]) => (
-                    <div
-                      key={kind}
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: "#555",
-                          width: 200,
-                          flexShrink: 0,
-                          ...mono,
-                        }}
-                      >
+                    <div key={kind} className="flex items-center gap-2.5">
+                      <span className="text-[11px] text-[#555] w-[200px] flex-shrink-0 font-mono">
                         {DEV_KIND_LABEL[kind] ?? kind}
                       </span>
-                      <div
-                        style={{
-                          flex: 1,
-                          background: "#161616",
-                          borderRadius: 2,
-                          height: 3,
-                          overflow: "hidden",
-                        }}
-                      >
+                      <div className="flex-1 bg-[#161616] rounded-sm h-[3px] overflow-hidden">
                         <div
+                          className="h-full bg-[#2A2A2A]"
                           style={{
-                            height: "100%",
-                            background: "#2A2A2A",
                             width: `${Math.round((size / report.dev_junk.total_size) * 100)}%`,
                           }}
                         />
                       </div>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          color: "#444",
-                          width: 52,
-                          textAlign: "right",
-                          flexShrink: 0,
-                          ...mono,
-                        }}
-                      >
+                      <span className="text-[10px] text-[#444] w-[52px] text-right flex-shrink-0 font-mono">
                         {formatBytes(size)}
                       </span>
                     </div>
@@ -811,65 +507,31 @@ export function Cleaner() {
                   .map((item, i, arr) => (
                     <div
                       key={item.path}
-                      style={{
-                        ...row,
-                        borderBottom:
-                          i < arr.length - 1 ? "0.5px solid #161616" : "none",
-                      }}
+                      className={`flex items-center py-2 ${
+                        i < arr.length - 1 ? "border-b border-[#161616]" : ""
+                      }`}
                     >
-                      <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
-                        <p style={{ fontSize: 12, color: "#888", ...mono }}>
+                      <div className="flex-1 min-w-0 mr-3">
+                        <p className="text-xs text-[#888] font-mono">
                           {item.name}
                         </p>
-                        <p
-                          style={{
-                            fontSize: 9,
-                            color: "#333",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            ...mono,
-                          }}
-                        >
+                        <p className="text-[9px] text-[#333] overflow-hidden text-ellipsis whitespace-nowrap font-mono">
                           {item.path}
                         </p>
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 9,
-                            color: "#333",
-                            background: "#1A1A1A",
-                            border: "0.5px solid #2A2A2A",
-                            borderRadius: 4,
-                            padding: "2px 6px",
-                            ...mono,
-                          }}
-                        >
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-[9px] text-[#333] bg-[#1A1A1A] border border-[#2A2A2A] rounded px-1.5 py-0.5 font-mono">
                           {DEV_KIND_LABEL[item.kind] ?? item.kind}
                         </span>
-                        <span style={{ fontSize: 10, color: "#555", ...mono }}>
+                        <span className="text-[10px] text-[#555] font-mono">
                           {formatBytes(item.size)}
                         </span>
                         <button
                           onClick={() => reveal(item.path)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "#333",
-                            cursor: "pointer",
-                            padding: 2,
-                          }}
+                          className="bg-transparent border-none text-[#333] cursor-pointer p-0.5"
                         >
                           <ExternalLink
-                            style={{ width: 11, height: 11 }}
+                            className="w-[11px] h-[11px]"
                             strokeWidth={1.6}
                           />
                         </button>
@@ -891,18 +553,7 @@ export function Cleaner() {
                       .map((i) => i.path),
                   )
                 }
-                style={{
-                  marginTop: 10,
-                  width: "100%",
-                  height: 30,
-                  borderRadius: 6,
-                  border: "0.5px solid #2A1800",
-                  background: "#0D0900",
-                  color: "#633806",
-                  fontSize: 10,
-                  cursor: "pointer",
-                  ...mono,
-                }}
+                className="mt-2.5 w-full h-[30px] rounded border border-[#2A1800] bg-[#0D0900] text-[#633806] text-[10px] cursor-pointer font-mono"
               >
                 clean all developer junk
               </button>

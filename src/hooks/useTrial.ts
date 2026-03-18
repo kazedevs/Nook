@@ -59,7 +59,6 @@ export function useTrial() {
     licenseStatus?.status === "active_offline";
   const trialExpired = !isLicensed && !isTrialActive;
   const canAccess = licenseStatus?.can_access ?? false;
-  const showPaywall = trialExpired && !isLicensed;
 
   // UX helper for trial banner
   const trialBanner = isTrialActive
@@ -75,7 +74,6 @@ export function useTrial() {
     daysRemaining,
     isLicensed,
     canAccess,
-    showPaywall,
     trialBanner,
     activateLicense,
     refreshStatus: checkStatus,

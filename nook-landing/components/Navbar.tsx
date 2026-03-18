@@ -24,7 +24,7 @@ export function Navbar() {
           <a href="#features" className="hover:text-n-text transition-colors">
             features
           </a>
-          <a href="#pricing" className="hover:text-n-text transition-colors">
+          <a href="/pricing" className="hover:text-n-text transition-colors">
             pricing
           </a>
           <a href="#download" className="hover:text-n-text transition-colors">

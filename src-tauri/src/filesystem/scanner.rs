@@ -87,10 +87,6 @@ fn should_skip_dir(entry: &DirEntry, ignore_hidden: bool, ignore_system: bool) -
 
 // ── public API ────────────────────────────────────────────────────────────────
 
-pub struct ScanHandle {
-    pub cancel: Arc<AtomicBool>,
-}
-
 pub async fn scan_directory(
     path: &str,
     max_depth: Option<usize>,

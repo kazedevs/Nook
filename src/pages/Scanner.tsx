@@ -24,22 +24,6 @@ interface SelectedItem {
   item: FileItem;
 }
 
-const mono: React.CSSProperties = { fontFamily: "var(--font-mono, monospace)" };
-const card: React.CSSProperties = {
-  background: "#0F0F0F",
-  border: "0.5px solid #1E1E1E",
-  borderRadius: 8,
-  padding: "14px 16px",
-};
-const label: React.CSSProperties = {
-  fontSize: 9,
-  letterSpacing: "0.1em",
-  textTransform: "uppercase" as const,
-  color: "#666",
-  marginBottom: 10,
-  ...mono,
-};
-
 export function Scanner() {
   const [selectedPath, setSelectedPath] = useState("");
   const [maxDepth, setMaxDepth] = useState(3);
@@ -69,42 +53,24 @@ export function Scanner() {
     error,
   } = useScanProgress();
 
-  // Load preferences from localStorage on mount
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        // Load saved preferences
         const saved = localStorage.getItem("nook_prefs");
         if (saved) {
           const prefs = JSON.parse(saved);
-          if (prefs.defaultPath) {
-            setSelectedPath(prefs.defaultPath);
-          }
-          if (prefs.defaultDepth) {
-            setMaxDepth(prefs.defaultDepth);
-          }
-          if (prefs.ignoreHidden !== undefined) {
-            setIgnoreHidden(prefs.ignoreHidden);
-          }
-          if (prefs.ignoreSystem !== undefined) {
-            setIgnoreSystem(prefs.ignoreSystem);
-          }
+          if (prefs.defaultPath) setSelectedPath(prefs.defaultPath);
+          if (prefs.defaultDepth) setMaxDepth(prefs.defaultDepth);
+          if (prefs.ignoreHidden !== undefined) setIgnoreHidden(prefs.ignoreHidden);
+          if (prefs.ignoreSystem !== undefined) setIgnoreSystem(prefs.ignoreSystem);
         }
-
-        // Load quick paths with real user home
         const userHome = await invoke<string>("get_user_home");
-        setQuickPaths([
-          userHome,
-          `${userHome}/Downloads`,
-          `${userHome}/Documents`,
-        ]);
+        setQuickPaths([userHome, `${userHome}/Downloads`, `${userHome}/Documents`]);
       } catch (error) {
         console.error("Failed to load preferences:", error);
-        // Fallback paths
         setQuickPaths(["/Users/you", "~/Downloads", "~/Documents"]);
       }
     };
-
     loadPreferences();
   }, []);
 
@@ -118,13 +84,9 @@ export function Scanner() {
   };
 
   const handleScan = async () => {
-    if (!selectedPath.trim()) {
-      return;
-    }
+    if (!selectedPath.trim()) return;
     setSelectedItem(null);
-
     await scan(selectedPath.trim(), maxDepth, ignoreHidden, ignoreSystem);
-
     if (scanResult) {
       setLastScanTime(new Date());
       const children = scanResult.tree?.children || [];
@@ -134,9 +96,7 @@ export function Scanner() {
     }
   };
 
-  const handleStop = () => {
-    cancel();
-  };
+  const handleStop = () => cancel();
   const handleReveal = (path: string) =>
     invoke("reveal_in_finder", { path }).catch(console.error);
   const handleOpenFolder = (path: string) =>
@@ -171,10 +131,7 @@ export function Scanner() {
   const handleFolderClick = (folder: FileItem) => {
     if (folder.children?.length) {
       setTreemapData(folder.children);
-      setBreadcrumb([
-        selectedPath.split("/").pop() || selectedPath,
-        folder.name,
-      ]);
+      setBreadcrumb([selectedPath.split("/").pop() || selectedPath, folder.name]);
     }
     setSelectedItem({ item: folder });
   };
@@ -188,30 +145,14 @@ export function Scanner() {
 
   return (
     <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "0 20px",
-      }}
+      className="flex flex-col gap-2.5 max-w-4xl mx-auto px-5"
       onClick={() => setContextMenu(null)}
     >
       {/* Context menu */}
       {contextMenu && (
         <div
-          style={{
-            position: "fixed",
-            zIndex: 50,
-            left: contextMenu.x,
-            top: contextMenu.y,
-            background: "#0F0F0F",
-            border: "0.5px solid #2A2A2A",
-            borderRadius: 8,
-            padding: 4,
-            minWidth: 160,
-          }}
+          className="fixed z-50 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-1 min-w-40"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
           {[
@@ -234,26 +175,12 @@ export function Scanner() {
           ].map(({ label: l, icon: Icon, action, danger }) => (
             <button
               key={l}
-              onClick={() => {
-                action();
-                setContextMenu(null);
-              }}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "7px 10px",
-                borderRadius: 6,
-                border: "none",
-                background: "transparent",
-                color: danger ? "#712B13" : "#666",
-                fontSize: 11,
-                cursor: "pointer",
-                ...mono,
-              }}
+              onClick={() => { action(); setContextMenu(null); }}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-none border-none bg-transparent cursor-pointer text-xs font-mono ${
+                danger ? "text-[#712B13]" : "text-[#666]"
+              }`}
             >
-              <Icon style={{ width: 12, height: 12 }} strokeWidth={1.6} />
+              <Icon className="w-3 h-3" strokeWidth={1.6} />
               {l}
             </button>
           ))}
@@ -261,135 +188,58 @@ export function Scanner() {
       )}
 
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
+      <div className="flex items-center justify-between">
         <div>
-          <p
-            style={{ fontSize: 16, fontWeight: 500, color: "#E8E6E1", ...mono }}
-          >
-            scanner
-          </p>
-          <p style={{ fontSize: 10, color: "#666", marginTop: 2, ...mono }}>
-            {lastScanTime
-              ? `last scan ${timeSince(lastScanTime)}`
-              : "find what's taking up space"}
+          <p className="text-base font-medium text-[#E8E6E1] font-mono">scanner</p>
+          <p className="text-[10px] text-[#666] mt-0.5 font-mono">
+            {lastScanTime ? `last scan ${timeSince(lastScanTime)}` : "find what's taking up space"}
           </p>
         </div>
         {scanResult && (
           <button
             onClick={handleScan}
             disabled={scanning}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              height: 30,
-              padding: "0 12px",
-              borderRadius: 6,
-              border: "0.5px solid #2A2A2A",
-              background: "transparent",
-              color: "#777",
-              fontSize: 11,
-              cursor: "pointer",
-              opacity: scanning ? 0.4 : 1,
-              ...mono,
-            }}
+            className={`flex items-center gap-1.5 h-[30px] px-3 rounded border border-[#2A2A2A] bg-transparent text-[#777] text-xs cursor-pointer font-mono ${
+              scanning ? "opacity-40" : "opacity-100"
+            }`}
           >
-            <RotateCcw style={{ width: 11, height: 11 }} strokeWidth={1.6} />
+            <RotateCcw className="w-[11px] h-[11px]" strokeWidth={1.6} />
             rescan
           </button>
         )}
       </div>
 
       {/* Controls */}
-      <div style={card}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+      <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg p-3.5 py-4">
+        <div className="flex gap-2 mb-2.5">
           <input
             value={selectedPath}
             onChange={(e) => setSelectedPath(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleScan()}
             placeholder="enter path or choose quick access"
-            style={{
-              flex: 1,
-              height: 34,
-              padding: "0 10px",
-              borderRadius: 6,
-              border: "0.5px solid #2A2A2A",
-              background: "#141414",
-              color: "#C8C4BE",
-              fontSize: 12,
-              outline: "none",
-              ...mono,
-            }}
+            className="flex-1 h-[34px] px-2.5 rounded border border-[#2A2A2A] bg-[#141414] text-[#C8C4BE] text-xs outline-none font-mono"
           />
           <button
             onClick={setUserHomePath}
-            style={{
-              height: 34,
-              padding: "0 12px",
-              borderRadius: 6,
-              border: "0.5px solid #2A2A2A",
-              background: "transparent",
-              color: "#777",
-              fontSize: 11,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              flexShrink: 0,
-              ...mono,
-            }}
+            className="h-[34px] px-3 rounded border border-[#2A2A2A] bg-transparent text-[#777] text-xs cursor-pointer flex items-center gap-1.5 flex-shrink-0 font-mono"
           >
-            <FolderOpen style={{ width: 12, height: 12 }} strokeWidth={1.6} />
+            <FolderOpen className="w-3 h-3" strokeWidth={1.6} />
             home
           </button>
           {scanning ? (
             <button
               onClick={handleStop}
-              style={{
-                height: 34,
-                padding: "0 12px",
-                borderRadius: 6,
-                border: "0.5px solid #4A2C00",
-                background: "#1A1200",
-                color: "#A0522D",
-                fontSize: 11,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                flexShrink: 0,
-                ...mono,
-              }}
+              className="h-[34px] px-3 rounded border border-[#4A2C00] bg-[#1A1200] text-[#A0522D] text-xs cursor-pointer flex items-center gap-1.5 flex-shrink-0 font-mono"
             >
-              <StopCircle style={{ width: 12, height: 12 }} strokeWidth={1.6} />
+              <StopCircle className="w-3 h-3" strokeWidth={1.6} />
               stop
             </button>
           ) : (
             <button
               onClick={handleScan}
-              style={{
-                height: 34,
-                padding: "0 14px",
-                borderRadius: 6,
-                border: "0.5px solid #2A2A2A",
-                background: "#1A1A1A",
-                color: "#E8E6E1",
-                fontSize: 11,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                flexShrink: 0,
-                ...mono,
-              }}
+              className="h-[34px] px-3.5 rounded border border-[#2A2A2A] bg-[#1A1A1A] text-[#E8E6E1] text-xs cursor-pointer flex items-center gap-1.5 flex-shrink-0 font-mono"
             >
-              <Scan style={{ width: 12, height: 12 }} strokeWidth={1.6} />
+              <Scan className="w-3 h-3" strokeWidth={1.6} />
               scan
             </button>
           )}
@@ -397,55 +247,24 @@ export function Scanner() {
 
         {/* Filter Status */}
         {(ignoreHidden || ignoreSystem) && (
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              marginBottom: 10,
-              fontSize: 10,
-              color: "#666",
-              ...mono,
-            }}
-          >
+          <div className="flex gap-3 mb-2.5 text-[10px] text-[#666] font-mono">
             {ignoreHidden && (
-              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "#3B6D11",
-                  }}
-                />
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3B6D11]" />
                 ignoring hidden files
               </span>
             )}
             {ignoreSystem && (
-              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "#3B6D11",
-                  }}
-                />
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3B6D11]" />
                 ignoring system folders
               </span>
             )}
           </div>
         )}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span
-            style={{
-              fontSize: 10,
-              color: "#333",
-              width: 60,
-              flexShrink: 0,
-              ...mono,
-            }}
-          >
+        <div className="flex items-center gap-2.5">
+          <span className="text-[10px] text-[#333] w-15 flex-shrink-0 font-mono">
             depth: {maxDepth}
           </span>
           <input
@@ -455,117 +274,41 @@ export function Scanner() {
             step="1"
             value={maxDepth}
             onChange={(e) => setMaxDepth(parseInt(e.target.value))}
-            style={{ flex: 1, accentColor: "#666" }}
+            className="flex-1 accent-[#666]"
           />
-          <span style={{ fontSize: 10, color: "#555", ...mono }}>
-            shallow → deep
-          </span>
+          <span className="text-[10px] text-[#555] font-mono">shallow → deep</span>
         </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 14px",
-            borderRadius: 8,
-            border: "0.5px solid #2A1800",
-            background: "#0D0900",
-            color: "#633806",
-            fontSize: 11,
-            ...mono,
-          }}
-        >
-          <AlertCircle
-            style={{ width: 13, height: 13, flexShrink: 0 }}
-            strokeWidth={1.6}
-          />
+        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded border border-[#2A1800] bg-[#0D0900] text-[#633806] text-xs font-mono">
+          <AlertCircle className="w-[13px] h-[13px] flex-shrink-0" strokeWidth={1.6} />
           {error}
         </div>
       )}
 
       {/* Progress */}
       {scanning && (
-        <div style={card}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 8,
-            }}
-          >
-            <span style={{ fontSize: 11, color: "#666", ...mono }}>
-              scanning {selectedPath}
-            </span>
-            <span style={{ fontSize: 11, color: "#666", ...mono }}>
-              {progress}%
-            </span>
+        <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg p-3.5 py-4">
+          <div className="flex justify-between mb-2">
+            <span className="text-xs text-[#666] font-mono">scanning {selectedPath}</span>
+            <span className="text-xs text-[#666] font-mono">{progress}%</span>
           </div>
-          <div
-            style={{
-              background: "#161616",
-              borderRadius: 2,
-              height: 2,
-              overflow: "hidden",
-              marginBottom: 12,
-            }}
-          >
+          <div className="bg-[#161616] rounded h-0.5 overflow-hidden mb-3">
             <div
-              style={{
-                height: "100%",
-                background: "#2A2A2A",
-                width: `${progress}%`,
-                transition: "width 0.3s",
-              }}
+              className="h-full bg-[#2A2A2A] transition-all duration-300"
+              style={{ width: `${progress}%` }}
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 11,
-                color: "#666",
-                ...mono,
-              }}
-            >
-              <div
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: "50%",
-                  border: "0.5px solid #2A2A2A",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <div
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: "#666",
-                    animation: "pulse 1s infinite",
-                  }}
-                />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 text-xs text-[#666] font-mono">
+              <div className="w-3.5 h-3.5 rounded-full border border-[#2A2A2A] flex items-center justify-center flex-shrink-0">
+                <div className="w-[5px] h-[5px] rounded-full bg-[#666] animate-pulse" />
               </div>
               scanning {currentPath}…
             </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 10,
-                color: "#3B6D11",
-                ...mono,
-              }}
-            >
+            <div className="flex justify-between text-[10px] text-[#3B6D11] font-mono">
               <span>{filesFound.toLocaleString()} files</span>
               <span>{formatBytes(bytesFound)}</span>
             </div>
@@ -577,51 +320,20 @@ export function Scanner() {
       {scanResult && !scanning && (
         <>
           {/* Stats */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3,1fr)",
-              gap: 8,
-            }}
-          >
+          <div className="grid grid-cols-3 gap-2">
             {[
               { k: "total size", v: formatBytes(scanResult.total_size) },
               { k: "files", v: scanResult.file_count.toLocaleString() },
-              {
-                k: "directories",
-                v: scanResult.directory_count.toLocaleString(),
-              },
+              { k: "directories", v: scanResult.directory_count.toLocaleString() },
             ].map((s) => (
               <div
                 key={s.k}
-                style={{
-                  background: "#0F0F0F",
-                  border: "0.5px solid #1E1E1E",
-                  borderRadius: 8,
-                  padding: "10px 14px",
-                }}
+                className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-3.5 py-2.5"
               >
-                <p
-                  style={{
-                    fontSize: 9,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    color: "#333",
-                    marginBottom: 5,
-                    ...mono,
-                  }}
-                >
+                <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] mb-1.5 font-mono">
                   {s.k}
                 </p>
-                <p
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 500,
-                    color: "#E8E6E1",
-                    letterSpacing: "-0.02em",
-                    ...mono,
-                  }}
-                >
+                <p className="text-[15px] font-medium text-[#E8E6E1] tracking-tight font-mono">
                   {s.v}
                 </p>
               </div>
@@ -629,43 +341,18 @@ export function Scanner() {
           </div>
 
           {/* Treemap */}
-          <div style={card}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                marginBottom: 10,
-                flexWrap: "wrap" as const,
-              }}
-            >
+          <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+            <div className="flex items-center gap-1 mb-2.5 flex-wrap">
               {breadcrumb.map((crumb, i) => (
-                <span
-                  key={i}
-                  style={{ display: "flex", alignItems: "center", gap: 4 }}
-                >
-                  {i > 0 && (
-                    <ChevronRight
-                      style={{ width: 10, height: 10, color: "#2A2A2A" }}
-                    />
-                  )}
+                <span key={i} className="flex items-center gap-1">
+                  {i > 0 && <ChevronRight className="w-2.5 h-2.5 text-[#2A2A2A]" />}
                   <button
                     onClick={() => handleBreadcrumb(i)}
-                    style={{
-                      fontSize: 11,
-                      padding: "2px 7px",
-                      borderRadius: 4,
-                      border: "none",
-                      cursor: "pointer",
-                      background:
-                        i === breadcrumb.length - 1 ? "#1A1A1A" : "transparent",
-                      color: i === breadcrumb.length - 1 ? "#E8E6E1" : "#444",
-                      maxWidth: "150px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      ...mono,
-                    }}
+                    className={`text-[11px] px-[7px] py-0.5 rounded cursor-pointer border-none max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap font-mono ${
+                      i === breadcrumb.length - 1
+                        ? "bg-[#1A1A1A] text-[#E8E6E1]"
+                        : "bg-transparent text-[#444]"
+                    }`}
                   >
                     {crumb}
                   </button>
@@ -673,77 +360,39 @@ export function Scanner() {
               ))}
             </div>
             <Treemap data={treemapData} onNodeClick={handleNodeClick} />
-            <p style={{ fontSize: 9, color: "#2A2A2A", marginTop: 8, ...mono }}>
+            <p className="text-[9px] text-[#2A2A2A] mt-2 font-mono">
               click to drill in · right-click for actions
             </p>
           </div>
 
           {/* Folders + Files */}
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
-          >
-            <div style={card}>
-              <p style={label}>folders</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+              <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] mb-2.5 font-mono">
+                folders
+              </p>
+              <div className="flex flex-col gap-px">
                 {folderTree.slice(0, 10).map((folder, i) => (
                   <button
                     key={i}
                     onClick={() => handleFolderClick(folder)}
                     onContextMenu={(e) => {
                       e.preventDefault();
-                      setContextMenu({
-                        x: e.clientX,
-                        y: e.clientY,
-                        item: folder,
-                      });
+                      setContextMenu({ x: e.clientX, y: e.clientY, item: folder });
                     }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "7px 8px",
-                      borderRadius: 6,
-                      border: "none",
-                      background: "transparent",
-                      cursor: "pointer",
-                      textAlign: "left" as const,
-                    }}
+                    className="flex items-center gap-2 px-2 py-[7px] rounded-md border-none bg-transparent cursor-pointer text-left"
                   >
                     <svg
                       viewBox="0 0 14 14"
-                      style={{
-                        width: 12,
-                        height: 12,
-                        stroke: "#333",
-                        fill: "none",
-                        strokeWidth: 1.6,
-                        flexShrink: 0,
-                      }}
+                      className="w-3 h-3 flex-shrink-0"
+                      style={{ stroke: "#333", fill: "none", strokeWidth: 1.6 }}
                     >
                       <path d="M1 4a1 1 0 011-1h3l1 1.5h6a1 1 0 011 1V11a1 1 0 01-1 1H2a1 1 0 01-1-1V4z" />
                     </svg>
-                    <span
-                      style={{
-                        flex: 1,
-                        fontSize: 12,
-                        color: "#888",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        maxWidth: "200px",
-                        ...mono,
-                      }}
-                    >
+                    <span className="flex-1 text-xs text-[#888] overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px] font-mono">
                       {folder.name}
                     </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: "#666",
-                        flexShrink: 0,
-                        ...mono,
-                      }}
-                    >
+                    <span className="text-[11px] text-[#666] flex-shrink-0 font-mono">
                       {formatBytes(folder.size)}
                     </span>
                   </button>
@@ -757,49 +406,28 @@ export function Scanner() {
           </div>
 
           {/* Charts */}
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
-          >
+          <div className="grid grid-cols-2 gap-2.5">
             <FolderSizeChart
-              folders={
-                scanResult.tree?.children?.filter((c) => c.is_directory) || []
-              }
+              folders={scanResult.tree?.children?.filter((c) => c.is_directory) || []}
             />
             <StorageBreakdown fileTypes={scanResult.file_types} />
           </div>
 
           {/* Selected item */}
           {selectedItem && (
-            <div style={card}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 12,
-                }}
-              >
-                <p style={label}>selected</p>
+            <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] font-mono">
+                  selected
+                </p>
                 <button
                   onClick={() => setSelectedItem(null)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#333",
-                    cursor: "pointer",
-                  }}
+                  className="bg-transparent border-none text-[#333] cursor-pointer"
                 >
-                  <X style={{ width: 12, height: 12 }} />
+                  <X className="w-3 h-3" />
                 </button>
               </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px 24px",
-                  marginBottom: 14,
-                }}
-              >
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 mb-3.5">
                 {[
                   { k: "name", v: selectedItem.item.name },
                   { k: "size", v: formatBytes(selectedItem.item.size) },
@@ -812,35 +440,16 @@ export function Scanner() {
                   { k: "path", v: selectedItem.item.path },
                 ].map(({ k, v }) => (
                   <div key={k}>
-                    <p
-                      style={{
-                        fontSize: 9,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        color: "#333",
-                        marginBottom: 3,
-                        ...mono,
-                      }}
-                    >
+                    <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] mb-[3px] font-mono">
                       {k}
                     </p>
-                    <p
-                      style={{
-                        fontSize: 12,
-                        color: "#888",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        maxWidth: "300px",
-                        ...mono,
-                      }}
-                    >
+                    <p className="text-xs text-[#888] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px] font-mono">
                       {v}
                     </p>
                   </div>
                 ))}
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div className="flex gap-1.5">
                 {[
                   {
                     l: "reveal in finder",
@@ -856,44 +465,17 @@ export function Scanner() {
                   <button
                     key={l}
                     onClick={action}
-                    style={{
-                      height: 28,
-                      padding: "0 10px",
-                      borderRadius: 6,
-                      border: "0.5px solid #2A2A2A",
-                      background: "transparent",
-                      color: "#666",
-                      fontSize: 10,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      ...mono,
-                    }}
+                    className="h-7 px-2.5 rounded border border-[#2A2A2A] bg-transparent text-[#666] text-[10px] cursor-pointer flex items-center gap-[5px] font-mono"
                   >
-                    <Icon style={{ width: 11, height: 11 }} strokeWidth={1.6} />
+                    <Icon className="w-[11px] h-[11px]" strokeWidth={1.6} />
                     {l}
                   </button>
                 ))}
                 <button
                   onClick={() => handleDelete(selectedItem.item.path)}
-                  style={{
-                    height: 28,
-                    padding: "0 10px",
-                    borderRadius: 6,
-                    border: "0.5px solid #2A1800",
-                    background: "#0D0900",
-                    color: "#633806",
-                    fontSize: 10,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                    marginLeft: "auto",
-                    ...mono,
-                  }}
+                  className="h-7 px-2.5 rounded border border-[#2A1800] bg-[#0D0900] text-[#633806] text-[10px] cursor-pointer flex items-center gap-[5px] ml-auto font-mono"
                 >
-                  <Trash2 style={{ width: 11, height: 11 }} strokeWidth={1.6} />
+                  <Trash2 className="w-[11px] h-[11px]" strokeWidth={1.6} />
                   delete
                 </button>
               </div>
@@ -904,72 +486,20 @@ export function Scanner() {
 
       {/* Empty state */}
       {!scanResult && !scanning && (
-        <div
-          style={{
-            ...card,
-            padding: "48px 24px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              border: "0.5px solid #1E1E1E",
-              background: "#141414",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 14,
-            }}
-          >
-            <Scan
-              style={{ width: 18, height: 18, color: "#555" }}
-              strokeWidth={1.5}
-            />
+        <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-6 py-12 flex flex-col items-center text-center">
+          <div className="w-10 h-10 rounded-[10px] border border-[#1E1E1E] bg-[#141414] flex items-center justify-center mb-3.5">
+            <Scan className="w-[18px] h-[18px] text-[#555]" strokeWidth={1.5} />
           </div>
-          <p style={{ fontSize: 13, color: "#777", marginBottom: 6, ...mono }}>
-            nothing scanned yet
-          </p>
-          <p
-            style={{
-              fontSize: 11,
-              color: "#333",
-              maxWidth: 280,
-              lineHeight: 1.7,
-              ...mono,
-            }}
-          >
+          <p className="text-[13px] text-[#777] mb-1.5 font-mono">nothing scanned yet</p>
+          <p className="text-[11px] text-[#333] max-w-[280px] leading-[1.7] font-mono">
             enter a path and hit scan to see what's eating your disk.
           </p>
-          <div
-            style={{
-              display: "flex",
-              gap: 6,
-              marginTop: 16,
-              flexWrap: "wrap" as const,
-              justifyContent: "center",
-            }}
-          >
+          <div className="flex gap-1.5 mt-4 flex-wrap justify-center">
             {quickPaths.map((p) => (
               <button
                 key={p}
                 onClick={() => setSelectedPath(p)}
-                style={{
-                  height: 26,
-                  padding: "0 10px",
-                  borderRadius: 6,
-                  border: "0.5px solid #1E1E1E",
-                  background: "transparent",
-                  fontSize: 10,
-                  color: "#666",
-                  cursor: "pointer",
-                  ...mono,
-                }}
+                className="h-[26px] px-2.5 rounded border border-[#1E1E1E] bg-transparent text-[10px] text-[#666] cursor-pointer font-mono"
               >
                 {p}
               </button>

@@ -49,6 +49,15 @@ pub fn get_trial_status() -> LicenseCheckResponse {
     get_full_status()
 }
 
+/// Emitted to the frontend as the analysis progresses.
+#[derive(Debug, Serialize, Clone)]
+pub struct AnalysisProgressEvent {
+    pub stage: String,           // "scanning", "duplicates", "old_files", "dev_junk"
+    pub progress: u8,            // 0-100 estimate for current stage
+    pub message: String,         // human-readable progress message
+    pub files_processed: usize,   // total files processed so far
+}
+
 /// Emitted to the frontend as the scan progresses.
 /// Frontend listens with: listen("scan_progress", handler)
 #[derive(Debug, Serialize, Clone)]
@@ -213,7 +222,7 @@ pub struct DeletePathsResponse {
 
 /// Run analysis command - trial/license paywall
 #[tauri::command]
-pub async fn run_analysis(request: AnalysisRequest) -> Result<AnalysisReport, String> {
+pub async fn run_analysis(request: AnalysisRequest, app: tauri::AppHandle) -> Result<AnalysisReport, String> {
     if !crate::license::can_access_features() {
         return Err("analysis requires nook pro".into())
     }
@@ -221,11 +230,20 @@ pub async fn run_analysis(request: AnalysisRequest) -> Result<AnalysisReport, St
     let root = request.root.trim().to_string();
     if root.is_empty() { return Err("root path must not be empty".into()) }
 
+    // Emit start event
+    let _ = app.emit_all("analysis_progress", AnalysisProgressEvent {
+        stage: "scanning".into(),
+        progress: 0,
+        message: "Starting analysis...".into(),
+        files_processed: 0,
+    });
+
     fs_analysis(
         &root,
         request.min_duplicate_size_mb.unwrap_or(1) * 1024 * 1024,
         request.old_file_days.unwrap_or(180),
         request.old_file_min_size_mb.unwrap_or(50) * 1024 * 1024,
+        Some(app),
     ).await
 }
 
@@ -242,15 +260,77 @@ pub async fn delete_paths(request: DeletePathsRequest) -> Result<DeletePathsResp
     Ok(DeletePathsResponse { freed_bytes: freed, deleted_count: count })
 }
 
-// Update commands (stubs for now)
+// Update commands
 #[tauri::command]
 pub async fn check_for_updates() -> Result<crate::filesystem::models::UpdateInfo, String> {
     use crate::filesystem::models::UpdateInfo;
-    Ok(UpdateInfo {
-        current_version: "1.0.0".into(),
-        latest_version: "1.0.0".into(),
-        update_available: false,
-        download_url: None,
-        release_notes: None,
-    })
+    
+    let current_version = "1.0.0".to_string();
+    
+    // Check GitHub releases for updates
+    match check_github_releases(&current_version).await {
+        Ok(Some(release)) => Ok(UpdateInfo {
+            current_version,
+            latest_version: release.tag_name.trim_start_matches('v').to_string(),
+            update_available: true,
+            download_url: release.assets.first().map(|asset| asset.browser_download_url.clone()),
+            release_notes: Some(release.body.unwrap_or_default()),
+        }),
+        Ok(None) => Ok(UpdateInfo {
+            current_version: current_version.clone(),
+            latest_version: current_version,
+            update_available: false,
+            download_url: None,
+            release_notes: None,
+        }),
+        Err(e) => {
+            eprintln!("Failed to check for updates: {}", e);
+            // Return no updates on error to not break the app
+            Ok(UpdateInfo {
+                current_version: current_version.clone(),
+                latest_version: current_version,
+                update_available: false,
+                download_url: None,
+                release_notes: None,
+            })
+        }
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct GitHubRelease {
+    tag_name: String,
+    body: Option<String>,
+    assets: Vec<GitHubAsset>,
+}
+
+#[derive(serde::Deserialize)]
+struct GitHubAsset {
+    browser_download_url: String,
+}
+
+async fn check_github_releases(current_version: &str) -> Result<Option<GitHubRelease>, Box<dyn std::error::Error + Send + Sync>> {
+    let client = reqwest::Client::builder()
+        .user_agent("nook-updater")
+        .timeout(std::time::Duration::from_secs(10))
+        .build()?;
+    
+    let response = client
+        .get("https://api.github.com/repos/fiynraj/nook/releases/latest")
+        .send()
+        .await?;
+    
+    if !response.status().is_success() {
+        return Err("Failed to fetch releases".into());
+    }
+    
+    let release: GitHubRelease = response.json().await?;
+    
+    // Compare versions (simple string comparison for now)
+    let latest_version = release.tag_name.trim_start_matches('v');
+    if latest_version != current_version {
+        Ok(Some(release))
+    } else {
+        Ok(None)
+    }
 }

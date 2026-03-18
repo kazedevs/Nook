@@ -4,7 +4,6 @@ use thiserror::Error;
 
 const APP_SECRET: &[u8] = b"nook-app-hmac-secret-v1-change-in-production";
 const MAX_KEY_LEN: usize = 256;
-const LICENSE_FILE_NAME: &str = ".nook-license";
 const TRIAL_DAYS: i64 = 7;
 
 // ── Single config file — trial + license in one place ────────────────────────
@@ -30,9 +29,13 @@ pub enum LicenseError {
     #[error("I/O error: {0}")]        Io(#[from] std::io::Error),
     #[error("Serialize: {0}")]        Serde(#[from] serde_json::Error),
     #[error("Invalid key format")]    InvalidFormat,
-    #[error("Key rejected by server")] InvalidKey,
+    #[error("Key rejected by server")]
+#[allow(dead_code)] // Variant kept for future use
+InvalidKey,
     #[error("Server unreachable")]    NetworkUnavailable,
-    #[error("Config tampered")]       Tampered,
+    #[error("Config tampered")]
+#[allow(dead_code)] // Variant kept for future use
+Tampered,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -111,7 +114,7 @@ pub fn get_full_status() -> LicenseCheckResponse {
 
     // Check license.
     if let Some(ref key) = cfg.license_key {
-        if let (Some(ref activated_at), true) = (
+        if let (Some(_activated_at), true) = (
             cfg.license_activated_at.as_ref(),
             verify_license_hmac(key, cfg.license_activated_at.as_deref().unwrap_or("")),
         ) {
@@ -134,6 +137,7 @@ pub fn get_full_status() -> LicenseCheckResponse {
 }
 
 /// Fix for issue #5: explicit trial start call, no side effects on status reads.
+#[allow(dead_code)] // Function kept for API compatibility
 pub fn start_trial() {
     ensure_trial_started();
 }
@@ -165,6 +169,7 @@ pub async fn activate_license(raw_key: &str) -> Result<LicenseCheckResponse, Str
 }
 
 /// Fix for issue #1: single source of truth.
+#[allow(dead_code)] // Function kept for potential future use
 pub fn is_premium_active() -> bool {
     let resp = get_full_status();
     matches!(resp.status, LicenseStatus::Active | LicenseStatus::ActiveOffline)
@@ -245,10 +250,14 @@ fn sanitize_key(raw: &str) -> Result<String, String> {
 }
 
 fn validate_format(key: &str) -> bool {
+    // Accept UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     let parts: Vec<&str> = key.split('-').collect();
     parts.len() == 5
-        && parts[0].to_uppercase() == "NOOK"
-        && parts[1..].iter().all(|p| p.len() == 4 && p.chars().all(|c| c.is_ascii_alphanumeric()))
+        && parts[0].len() == 8 && parts[0].chars().all(|c| c.is_ascii_hexdigit())
+        && parts[1].len() == 4 && parts[1].chars().all(|c| c.is_ascii_hexdigit())
+        && parts[2].len() == 4 && parts[2].chars().all(|c| c.is_ascii_hexdigit())
+        && parts[3].len() == 4 && parts[3].chars().all(|c| c.is_ascii_hexdigit())
+        && parts[4].len() == 12 && parts[4].chars().all(|c| c.is_ascii_hexdigit())
 }
 
 async fn verify_with_server(key: &str) -> Result<bool, LicenseError> {
@@ -272,12 +281,18 @@ async fn verify_with_server(key: &str) -> Result<bool, LicenseError> {
 }
 
 async fn call_endpoint(client: &reqwest::Client, key: &str) -> Result<bool, LicenseError> {
+    // Use production URL in release mode, localhost in development
+    #[allow(unexpected_cfgs)] // Allow cfg(debug) for development vs production
+    let url = if cfg!(debug) {
+        "http://localhost:3001/api/license/validate"
+    } else {
+        "https://nook-landing.vercel.app/api/license/validate"
+    };
+    
     let resp = client
-        .post("https://test.dodopayments.com/v1/licenses/validate")
-        .header("Authorization", format!("Bearer {}", env!("DODO_API_KEY")))
+        .post(url)
         .json(&serde_json::json!({
-            "license_key": key,
-            "product_id": env!("DODO_PRODUCT_ID")
+            "license_key": key
         }))
         .send()
         .await
@@ -301,10 +316,10 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test] fn valid_format()  { assert!(validate_format("NOOK-AB12-CD34-EF56-GH78")) }
-    #[test] fn bad_prefix()    { assert!(!validate_format("BARD-AB12-CD34-EF56-GH78")) }
-    #[test] fn short_key()     { assert!(!validate_format("NOOK-AB12")) }
-    #[test] fn unicode_key()   { assert!(sanitize_key("NOOK-🔑").is_err()) }
+    #[test] fn valid_format()  { assert!(validate_format("c85d4e65-3874-4d24-8913-ccebe034be54")) }
+    #[test] fn bad_prefix()    { assert!(!validate_format("NOOK-AB12-CD34-EF56-GH78")) }
+    #[test] fn short_key()     { assert!(!validate_format("c85d4e65-3874")) }
+    #[test] fn unicode_key()   { assert!(sanitize_key("c85d4e65-🔑").is_err()) }
     #[test] fn empty_key()     { assert!(sanitize_key("").is_err()) }
     #[test] fn clock_rollback_ignored() {
         // max_days_elapsed=5, real elapsed=2 → should use 5

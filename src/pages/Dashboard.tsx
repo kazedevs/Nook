@@ -37,40 +37,20 @@ const DMG_EXTS = ["dmg", "pkg", "iso"];
 const VIDEO_EXTS = ["mp4", "mov", "mkv", "avi", "m4v"];
 const DEV_DIRS = ["node_modules", ".cache", "DerivedData", "Pods"];
 
-const card: React.CSSProperties = {
-  background: "#0F0F0F",
-  border: "0.5px solid #1E1E1E",
-  borderRadius: 8,
-  padding: "14px 16px",
-};
-
-const sectionLabel: React.CSSProperties = {
-  fontSize: 9,
-  letterSpacing: "0.1em",
-  textTransform: "uppercase",
-  color: "#666",
-  marginBottom: 10,
-  fontFamily: "var(--font-mono, monospace)",
-};
-
-const mono: React.CSSProperties = { fontFamily: "var(--font-mono, monospace)" };
-
 export function Dashboard() {
   const navigate = useNavigate();
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
+  const [_lastScanTime, setLastScanTime] = useState<Date | null>(null);
 
   const {
     scan,
-    cancel,
     scanning,
     progress,
     filesFound,
     bytesFound,
     currentPath,
     result: scanResult,
-    error,
   } = useScanProgress();
 
   useEffect(() => {
@@ -78,67 +58,30 @@ export function Dashboard() {
       .then(setSystemInfo)
       .catch(console.error)
       .finally(() => setLoading(false));
-    const saved = localStorage.getItem("nook_last_scan");
-    if (saved) {
-      try {
-        // Removed setScanResult here
-      } catch {}
-    }
   }, []);
 
-  const runScan = async (path: string, label: string) => {
+  const runScan = async (path: string, _label: string) => {
     setLastScanTime(new Date());
-
-    // Resolve ~ to actual home directory
     let resolvedPath = path;
     if (path.startsWith("~")) {
       const userHome = await invoke<string>("get_user_home");
       resolvedPath = path.replace("~", userHome);
     }
-
     await scan(resolvedPath, 3, true, true);
   };
 
   if (loading)
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: 256,
-        }}
-      >
-        <div
-          style={{
-            width: 16,
-            height: 16,
-            borderRadius: "50%",
-            border: "1.5px solid #222",
-            borderTopColor: "#555",
-            animation: "spin 0.8s linear infinite",
-          }}
-        />
+      <div className="flex items-center justify-center h-64">
+        <div className="w-4 h-4 rounded-full border-[1.5px] border-[#222] border-t-[#555] animate-spin" />
       </div>
     );
 
   if (!systemInfo)
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: 256,
-          gap: 8,
-        }}
-      >
-        <HardDrive
-          style={{ width: 20, height: 20, color: "#666" }}
-          strokeWidth={1.5}
-        />
-        <p style={{ fontSize: 12, color: "#666", ...mono }}>
+      <div className="flex flex-col items-center justify-center h-64 gap-2">
+        <HardDrive className="w-5 h-5 text-[#666]" strokeWidth={1.5} />
+        <p className="text-xs text-[#666] font-mono">
           failed to load system info
         </p>
       </div>
@@ -177,27 +120,13 @@ export function Dashboard() {
   ].filter(Boolean) as { label: string; size: number }[];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "0 20px",
-      }}
-    >
+    <div className="flex flex-col gap-2.5 max-w-[900px] mx-auto px-5">
       {/* Storage */}
-      <div style={card}>
-        <p style={sectionLabel}>storage</p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-            gap: 8,
-            marginBottom: 14,
-          }}
-        >
+      <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+        <p className="text-[9px] tracking-[0.1em] uppercase text-[#666] mb-2.5 font-mono">
+          storage
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3.5">
           {[
             { k: "total", v: formatBytes(systemInfo.total_disk_space) },
             { k: "used", v: formatBytes(systemInfo.used_disk_space) },
@@ -210,33 +139,15 @@ export function Dashboard() {
           ].map((s) => (
             <div
               key={s.k}
-              style={{
-                background: "#141414",
-                border: "0.5px solid #1E1E1E",
-                borderRadius: 6,
-                padding: "10px 12px",
-              }}
+              className="bg-[#141414] border border-[#1E1E1E] rounded-md px-3 py-2.5"
             >
-              <p
-                style={{
-                  fontSize: 9,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "#666",
-                  marginBottom: 5,
-                  ...mono,
-                }}
-              >
+              <p className="text-[9px] tracking-[0.08em] uppercase text-[#666] mb-1.5 font-mono">
                 {s.k}
               </p>
               <p
-                style={{
-                  fontSize: 16,
-                  fontWeight: 500,
-                  letterSpacing: "-0.02em",
-                  color: s.warn ? "#854F0B" : "#E8E6E1",
-                  ...mono,
-                }}
+                className={`text-base font-medium tracking-tight font-mono ${
+                  s.warn ? "text-[#854F0B]" : "text-[#E8E6E1]"
+                }`}
               >
                 {s.v}
               </p>
@@ -244,64 +155,29 @@ export function Dashboard() {
           ))}
         </div>
 
-        <div
-          style={{
-            background: "#161616",
-            borderRadius: 2,
-            height: 2,
-            overflow: "hidden",
-            marginBottom: 6,
-          }}
-        >
+        <div className="bg-[#161616] rounded-sm h-0.5 overflow-hidden mb-1.5">
           <div
-            style={{
-              height: "100%",
-              background: isCritical
-                ? "#712B13"
+            className={`h-full transition-all duration-500 ${
+              isCritical
+                ? "bg-[#712B13]"
                 : isWarning
-                  ? "#633806"
-                  : "#2A2A2A",
-              width: `${Math.min(usagePct, 100)}%`,
-              transition: "width 0.4s",
-            }}
+                  ? "bg-[#633806]"
+                  : "bg-[#2A2A2A]"
+            }`}
+            style={{ width: `${Math.min(usagePct, 100)}%` }}
           />
         </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 9,
-            color: "#666",
-            letterSpacing: "0.04em",
-            ...mono,
-          }}
-        >
+        <div className="flex justify-between text-[9px] text-[#666] tracking-[0.04em] font-mono">
           <span>{formatBytes(systemInfo.used_disk_space)} used</span>
           <span>{formatBytes(systemInfo.available_disk_space)} free</span>
         </div>
 
         {estimatedFreeable > 0 && (
-          <div
-            style={{
-              marginTop: 10,
-              paddingTop: 10,
-              borderTop: "0.5px solid #1A1A1A",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <span style={{ fontSize: 10, color: "#666", ...mono }}>
+          <div className="mt-2.5 pt-2.5 border-t border-[#1A1A1A] flex items-center justify-between">
+            <span className="text-[10px] text-[#666] font-mono">
               est. freeable
             </span>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: "#3B6D11",
-                ...mono,
-              }}
-            >
+            <span className="text-xs font-medium text-[#3B6D11] font-mono">
               +{formatBytes(estimatedFreeable)}
             </span>
           </div>
@@ -310,39 +186,16 @@ export function Dashboard() {
 
       {/* Warning */}
       {(isWarning || isCritical) && (
-        <div
-          style={{
-            background: "#0D0900",
-            border: "0.5px solid #2A1800",
-            borderRadius: 8,
-            padding: "10px 14px",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 9,
-          }}
-        >
+        <div className="bg-[#0D0900] border border-[#2A1800] rounded-lg px-3.5 py-2.5 flex items-start gap-[9px]">
           <AlertTriangle
-            style={{
-              width: 13,
-              height: 13,
-              color: "#D4841E",
-              flexShrink: 0,
-              marginTop: 1,
-            }}
+            className="w-[13px] h-[13px] text-[#D4841E] flex-shrink-0 mt-px"
             strokeWidth={1.6}
           />
           <div>
-            <p
-              style={{
-                fontSize: 11,
-                color: "#D4841E",
-                marginBottom: 2,
-                ...mono,
-              }}
-            >
+            <p className="text-[11px] text-[#D4841E] mb-0.5 font-mono">
               {isCritical ? "disk is almost full" : "running low on space"}
             </p>
-            <p style={{ fontSize: 10, color: "#633806", ...mono }}>
+            <p className="text-[10px] text-[#633806] font-mono">
               {formatBytes(systemInfo.available_disk_space)} remaining. scan
               disk to find what to delete.
             </p>
@@ -351,71 +204,30 @@ export function Dashboard() {
       )}
 
       {/* Quick scan */}
-      <div style={card}>
-        <p style={sectionLabel}>quick scan</p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 8,
-          }}
-        >
+      <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+        <p className="text-[9px] tracking-[0.1em] uppercase text-[#666] mb-2.5 font-mono">
+          quick scan
+        </p>
+        <div className="grid grid-cols-3 gap-2">
           {QUICK_SCAN_PATHS.map(({ label, path, icon }) => (
             <button
               key={path}
               onClick={() => runScan(path, label)}
               disabled={scanning}
-              style={{
-                width: "100%",
-                aspectRatio: "1",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                borderRadius: 6,
-                border: "0.5px solid #1A1A1A",
-                background: scanning ? "#141414" : "transparent",
-                color: scanning ? "#888" : "#777",
-                fontSize: 11,
-                cursor: "pointer",
-                fontFamily: "var(--font-mono, monospace)",
-                opacity: scanning ? 0.5 : 1,
-                transition: "all 0.1s",
-                padding: "12px",
-              }}
+              className={`aspect-square flex flex-col items-center justify-center gap-2 rounded-md border border-[#1A1A1A] text-[11px] cursor-pointer font-mono transition-all duration-100 p-3 ${
+                scanning
+                  ? "bg-[#141414] text-[#888] opacity-50"
+                  : "bg-transparent text-[#777]"
+              }`}
             >
-              <div
-                style={{
-                  fontSize: 24,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+              <div className="text-2xl flex items-center justify-center">
                 {scanning ? (
-                  <div
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      border: "1.5px solid #333",
-                      borderTopColor: "#666",
-                      animation: "spin 0.8s linear infinite",
-                    }}
-                  />
+                  <div className="w-6 h-6 rounded-full border-[1.5px] border-[#333] border-t-[#666] animate-spin" />
                 ) : (
                   icon
                 )}
               </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  textAlign: "center",
-                  lineHeight: 1.2,
-                  fontWeight: 500,
-                }}
-              >
+              <div className="text-[11px] text-center leading-[1.2] font-medium">
                 {label.split(" ").map((word, i) => (
                   <div key={i}>{word}</div>
                 ))}
@@ -427,83 +239,29 @@ export function Dashboard() {
 
       {/* Progress */}
       {scanning && (
-        <div style={card}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 8,
-            }}
-          >
-            <span style={{ fontSize: 11, color: "#666", ...mono }}>
+        <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+          <div className="flex justify-between mb-2">
+            <span className="text-[11px] text-[#666] font-mono">
               scanning {currentPath}
             </span>
-            <span style={{ fontSize: 11, color: "#666", ...mono }}>
+            <span className="text-[11px] text-[#666] font-mono">
               {progress}%
             </span>
           </div>
-          <div
-            style={{
-              background: "#161616",
-              borderRadius: 2,
-              height: 2,
-              overflow: "hidden",
-              marginBottom: 12,
-            }}
-          >
+          <div className="bg-[#161616] rounded-sm h-0.5 overflow-hidden mb-3">
             <div
-              style={{
-                height: "100%",
-                background: "#2A2A2A",
-                width: `${progress}%`,
-                transition: "width 0.3s",
-              }}
+              className="h-full bg-[#2A2A2A] transition-all duration-300"
+              style={{ width: `${progress}%` }}
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 11,
-                color: "#666",
-                ...mono,
-              }}
-            >
-              <div
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: "50%",
-                  border: "0.5px solid #2A2A2A",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <div
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: "#666",
-                    animation: "pulse 1s infinite",
-                  }}
-                />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 text-[11px] text-[#666] font-mono">
+              <div className="w-3.5 h-3.5 rounded-full border border-[#2A2A2A] flex items-center justify-center flex-shrink-0">
+                <div className="w-[5px] h-[5px] rounded-full bg-[#666] animate-pulse" />
               </div>
               scanning {currentPath}…
             </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 10,
-                color: "#3B6D11",
-                ...mono,
-              }}
-            >
+            <div className="flex justify-between text-[10px] text-[#3B6D11] font-mono">
               <span>{filesFound.toLocaleString()} files</span>
               <span>{formatBytes(bytesFound)}</span>
             </div>
@@ -513,147 +271,60 @@ export function Dashboard() {
 
       {/* Last scan */}
       {scanResult && (
-        <div style={card}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 10,
-            }}
-          >
-            <p style={sectionLabel}>last scan</p>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 9, color: "#666", ...mono }}>
+        <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-[9px] tracking-[0.1em] uppercase text-[#666] font-mono">
+              last scan
+            </p>
+            <div className="flex items-center gap-2.5">
+              <span className="text-[9px] text-[#666] font-mono">
                 {formatBytes(scanResult.total_size)} ·{" "}
                 {scanResult.file_count.toLocaleString()} files
               </span>
               <button
                 onClick={() => runScan(scanResult.root_path, "refresh")}
                 disabled={scanning}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#666",
-                  cursor: "pointer",
-                  padding: 0,
-                  opacity: scanning ? 0.4 : 1,
-                }}
+                className={`bg-transparent border-none text-[#666] cursor-pointer p-0 ${
+                  scanning ? "opacity-40" : "opacity-100"
+                }`}
               >
-                <RefreshCw
-                  style={{ width: 11, height: 11 }}
-                  strokeWidth={1.6}
-                />
+                <RefreshCw className="w-[11px] h-[11px]" strokeWidth={1.6} />
               </button>
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 8,
-              marginBottom: 10,
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2.5">
             {largestFolder && (
-              <div
-                style={{
-                  background: "#141414",
-                  border: "0.5px solid #1E1E1E",
-                  borderRadius: 6,
-                  padding: "10px 12px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                    marginBottom: 6,
-                  }}
-                >
+              <div className="bg-[#141414] border border-[#1E1E1E] rounded-md px-3 py-2.5">
+                <div className="flex items-center gap-[5px] mb-1.5">
                   <FolderOpen
-                    style={{ width: 10, height: 10, color: "#666" }}
+                    className="w-2.5 h-2.5 text-[#666]"
                     strokeWidth={1.6}
                   />
-                  <p
-                    style={{
-                      fontSize: 9,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: "#666",
-                      ...mono,
-                    }}
-                  >
+                  <p className="text-[9px] tracking-[0.08em] uppercase text-[#666] font-mono">
                     largest folder
                   </p>
                 </div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "#C8C4BE",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    marginBottom: 2,
-                    ...mono,
-                  }}
-                >
+                <p className="text-xs text-[#C8C4BE] whitespace-nowrap overflow-hidden text-ellipsis mb-0.5 font-mono">
                   {largestFolder.name}
                 </p>
-                <p style={{ fontSize: 10, color: "#444", ...mono }}>
+                <p className="text-[10px] text-[#444] font-mono">
                   {formatBytes(largestFolder.size)}
                 </p>
               </div>
             )}
             {largestFile && (
-              <div
-                style={{
-                  background: "#141414",
-                  border: "0.5px solid #1E1E1E",
-                  borderRadius: 6,
-                  padding: "10px 12px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                    marginBottom: 6,
-                  }}
-                >
-                  <File
-                    style={{ width: 10, height: 10, color: "#666" }}
-                    strokeWidth={1.6}
-                  />
-                  <p
-                    style={{
-                      fontSize: 9,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: "#666",
-                      ...mono,
-                    }}
-                  >
+              <div className="bg-[#141414] border border-[#1E1E1E] rounded-md px-3 py-2.5">
+                <div className="flex items-center gap-[5px] mb-1.5">
+                  <File className="w-2.5 h-2.5 text-[#666]" strokeWidth={1.6} />
+                  <p className="text-[9px] tracking-[0.08em] uppercase text-[#666] font-mono">
                     largest file
                   </p>
                 </div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "#C8C4BE",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    marginBottom: 2,
-                    ...mono,
-                  }}
-                >
+                <p className="text-xs text-[#C8C4BE] whitespace-nowrap overflow-hidden text-ellipsis mb-0.5 font-mono">
                   {largestFile.name}
                 </p>
-                <p style={{ fontSize: 10, color: "#444", ...mono }}>
+                <p className="text-[10px] text-[#444] font-mono">
                   {formatBytes(largestFile.size)}
                 </p>
               </div>
@@ -662,50 +333,32 @@ export function Dashboard() {
 
           <button
             onClick={() => navigate("/scanner")}
-            style={{
-              width: "100%",
-              padding: "7px",
-              borderRadius: 6,
-              border: "0.5px solid #1E1E1E",
-              background: "transparent",
-              fontSize: 10,
-              color: "#444",
-              fontFamily: "var(--font-mono, monospace)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 5,
-              letterSpacing: "0.04em",
-            }}
+            className="w-full py-[7px] rounded-md border border-[#1E1E1E] bg-transparent text-[10px] text-[#444] font-mono cursor-pointer flex items-center justify-center gap-[5px] tracking-[0.04em]"
           >
             view full results
-            <ChevronRight style={{ width: 10, height: 10 }} strokeWidth={1.6} />
+            <ChevronRight className="w-2.5 h-2.5" strokeWidth={1.6} />
           </button>
         </div>
       )}
 
       {/* Insights */}
       {insights.length > 0 && (
-        <div style={card}>
-          <p style={sectionLabel}>possible to free</p>
+        <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+          <p className="text-[9px] tracking-[0.1em] uppercase text-[#666] mb-2.5 font-mono">
+            possible to free
+          </p>
           <div>
             {insights.map((ins, i) => (
               <div
                 key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "7px 0",
-                  borderBottom:
-                    i < insights.length - 1 ? "0.5px solid #161616" : "none",
-                }}
+                className={`flex items-center justify-between py-[7px] ${
+                  i < insights.length - 1 ? "border-b border-[#161616]" : ""
+                }`}
               >
-                <span style={{ fontSize: 11, color: "#777", ...mono }}>
+                <span className="text-[11px] text-[#777] font-mono">
                   {ins.label}
                 </span>
-                <span style={{ fontSize: 11, color: "#AAA", ...mono }}>
+                <span className="text-[11px] text-[#AAA] font-mono">
                   {formatBytes(ins.size)}
                 </span>
               </div>
@@ -715,46 +368,24 @@ export function Dashboard() {
       )}
 
       {/* System */}
-      <div style={card}>
-        <p style={sectionLabel}>system</p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-            gap: 10,
-          }}
-        >
+      <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+        <p className="text-[9px] tracking-[0.1em] uppercase text-[#666] mb-2.5 font-mono">
+          system
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div>
-            <p
-              style={{
-                fontSize: 9,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "#666",
-                marginBottom: 4,
-                ...mono,
-              }}
-            >
+            <p className="text-[9px] tracking-[0.08em] uppercase text-[#666] mb-1 font-mono">
               operating system
             </p>
-            <p style={{ fontSize: 11, color: "#888", ...mono }}>
+            <p className="text-[11px] text-[#888] font-mono">
               {systemInfo.os_name}
             </p>
           </div>
           <div>
-            <p
-              style={{
-                fontSize: 9,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "#666",
-                marginBottom: 4,
-                ...mono,
-              }}
-            >
+            <p className="text-[9px] tracking-[0.08em] uppercase text-[#666] mb-1 font-mono">
               version
             </p>
-            <p style={{ fontSize: 11, color: "#888", ...mono }}>
+            <p className="text-[11px] text-[#888] font-mono">
               {systemInfo.os_version}
             </p>
           </div>

@@ -11,31 +11,7 @@ import {
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { SystemInfo, UpdateInfo } from "@/types";
-
-const mono: React.CSSProperties = { fontFamily: "var(--font-mono, monospace)" };
-const card: React.CSSProperties = {
-  background: "#0F0F0F",
-  border: "0.5px solid #1E1E1E",
-  borderRadius: 8,
-  padding: "20px",
-  marginBottom: 12,
-};
-const lbl: React.CSSProperties = {
-  fontSize: 10,
-  letterSpacing: "0.1em",
-  textTransform: "uppercase" as const,
-  color: "#666",
-  marginBottom: 14,
-  ...mono,
-};
-const row: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "10px 0",
-  borderBottom: "0.5px solid #161616",
-};
-const rowLast: React.CSSProperties = { ...row, borderBottom: "none" };
+import { useLicense } from "@/contexts/LicenseContext";
 
 const PREFS_KEY = "nook_prefs";
 
@@ -61,39 +37,26 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <div
       onClick={onToggle}
-      style={{
-        width: 42,
-        height: 20,
-        borderRadius: 10,
-        border: `0.5px solid ${on ? "#27500A" : "#2A2A2A"}`,
-        background: on ? "#0A1A08" : "#141414",
-        position: "relative",
-        cursor: "pointer",
-        transition: "all 0.2s",
-        flexShrink: 0,
-      }}
+      className={`relative w-[42px] h-5 rounded-[10px] cursor-pointer transition-all duration-200 flex-shrink-0 ${
+        on
+          ? "border border-[#27500A] bg-[#0A1A08]"
+          : "border border-[#2A2A2A] bg-[#141414]"
+      }`}
     >
       <div
-        style={{
-          position: "absolute",
-          top: 2,
-          left: on ? 22 : 2,
-          width: 14,
-          height: 14,
-          borderRadius: "50%",
-          background: on ? "#3B6D11" : "#2A2A2A",
-          transition: "left 0.2s",
-        }}
+        className={`absolute top-[3px] w-3.5 h-3.5 rounded-full transition-all duration-200 ${
+          on ? "left-[22px] bg-[#3B6D11]" : "left-[3px] bg-[#2A2A2A]"
+        }`}
       />
     </div>
   );
 }
 
 export function Settings() {
+  const { isLicensed, activate } = useLicense();
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [licenseKey, setLicenseKey] = useState("");
-  const [isLicensed, setIsLicensed] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [licenseMsg, setLicenseMsg] = useState("");
   const [licenseMsgOk, setLicenseMsgOk] = useState(false);
@@ -102,13 +65,11 @@ export function Settings() {
   const [activeSection, setActiveSection] = useState<string>("license");
 
   useEffect(() => {
-    // Load persisted prefs
     try {
       const saved = localStorage.getItem(PREFS_KEY);
       if (saved) setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(saved) });
     } catch {}
 
-    // Load real system info and user info
     Promise.all([
       invoke<SystemInfo>("get_system_info"),
       invoke<string>("get_user_home"),
@@ -120,11 +81,6 @@ export function Settings() {
           defaultPath: p.defaultPath || `${userHome}`,
         }));
       })
-      .catch(console.error);
-
-    // Check license
-    invoke<boolean>("check_license", { licenseKey: "" })
-      .then(setIsLicensed)
       .catch(console.error);
   }, []);
 
@@ -143,11 +99,8 @@ export function Settings() {
     setIsActivating(true);
     setLicenseMsg("");
     try {
-      const ok = await invoke<boolean>("activate_license", {
-        licenseKey: licenseKey.trim(),
-      });
-      if (ok) {
-        setIsLicensed(true);
+      const result = await activate(licenseKey.trim());
+      if (result.status === "active" || result.status === "active_offline") {
         setLicenseMsg("license activated.");
         setLicenseMsgOk(true);
         setLicenseKey("");
@@ -206,32 +159,30 @@ export function Settings() {
     { id: "about", label: "about", icon: Info },
   ];
 
+  // Shared row styles
+  const rowClass =
+    "flex items-center justify-between py-3 border-b border-[#161616]";
+  const rowLastClass = "flex items-center justify-between py-3";
+
   return (
-    <div style={{ display: "flex", gap: 24, maxWidth: 920 }}>
+    <div className="flex gap-6 max-w-[920px]">
       {/* Side nav */}
-      <div style={{ width: 160, flexShrink: 0 }}>
-        <p style={{ ...lbl, marginBottom: 10, fontSize: 11 }}>settings</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <div className="w-40 flex-shrink-0">
+        <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] mb-2.5 font-mono">
+          settings
+        </p>
+        <div className="flex flex-col gap-0.5">
           {SECTIONS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveSection(id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "9px 11px",
-                borderRadius: 6,
-                border: "none",
-                background: activeSection === id ? "#161616" : "transparent",
-                color: activeSection === id ? "#E8E6E1" : "#666",
-                fontSize: 12,
-                cursor: "pointer",
-                textAlign: "left",
-                ...mono,
-              }}
+              className={`flex items-center gap-2.5 px-[11px] py-[9px] rounded-md border-none text-xs cursor-pointer text-left font-mono ${
+                activeSection === id
+                  ? "bg-[#161616] text-[#E8E6E1]"
+                  : "bg-transparent text-[#666]"
+              }`}
             >
-              <Icon style={{ width: 14, height: 14 }} strokeWidth={1.6} />
+              <Icon className="w-3.5 h-3.5" strokeWidth={1.6} />
               {label}
             </button>
           ))}
@@ -239,45 +190,20 @@ export function Settings() {
 
         {/* Disk mini widget */}
         {systemInfo && (
-          <div
-            style={{
-              marginTop: 24,
-              padding: "12px 14px",
-              background: "#0F0F0F",
-              border: "0.5px solid #1E1E1E",
-              borderRadius: 8,
-            }}
-          >
-            <p style={{ ...lbl, marginBottom: 10, fontSize: 10 }}>disk</p>
-            <div
-              style={{
-                background: "#161616",
-                borderRadius: 2,
-                height: 4,
-                overflow: "hidden",
-                marginBottom: 8,
-              }}
-            >
+          <div className="mt-6 px-3.5 py-3 bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg">
+            <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] mb-2.5 font-mono">
+              disk
+            </p>
+            <div className="bg-[#161616] rounded-sm h-1 overflow-hidden mb-2">
               <div
-                style={{
-                  height: "100%",
-                  background: usedPct! > 85 ? "#712B13" : "#2A2A2A",
-                  width: `${usedPct}%`,
-                  transition: "width 0.4s",
-                }}
+                className={`h-full transition-all duration-500 ${
+                  usedPct! > 85 ? "bg-[#712B13]" : "bg-[#2A2A2A]"
+                }`}
+                style={{ width: `${usedPct}%` }}
               />
             </div>
-            <p style={{ fontSize: 11, color: "#666", ...mono }}>
-              {usedPct}% used
-            </p>
-            <p
-              style={{
-                fontSize: 11,
-                color: "#555",
-                marginTop: 3,
-                ...mono,
-              }}
-            >
+            <p className="text-[11px] text-[#666] font-mono">{usedPct}% used</p>
+            <p className="text-[11px] text-[#555] mt-[3px] font-mono">
               {systemInfo.os_name} {systemInfo.os_version}
             </p>
           </div>
@@ -285,118 +211,61 @@ export function Settings() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="flex-1 min-w-0">
         {/* LICENSE */}
         {activeSection === "license" && (
           <>
-            <div style={card}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 14,
-                }}
-              >
-                <p style={lbl}>license status</p>
+            <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+              <div className="flex items-center justify-between mb-3.5">
+                <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] font-mono">
+                  license status
+                </p>
                 <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 10,
-                    padding: "3px 10px",
-                    borderRadius: 100,
-                    border: `0.5px solid ${isLicensed ? "#27500A" : "#2A2A2A"}`,
-                    color: isLicensed ? "#3B6D11" : "#666",
-                    ...mono,
-                  }}
+                  className={`inline-flex items-center gap-1.5 text-[10px] px-2.5 py-[3px] rounded-full border font-mono ${
+                    isLicensed
+                      ? "border-[#27500A] text-[#3B6D11]"
+                      : "border-[#2A2A2A] text-[#666]"
+                  }`}
                 >
                   <span
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: "50%",
-                      background: isLicensed ? "#3B6D11" : "#2A2A2A",
-                      flexShrink: 0,
-                    }}
+                    className={`w-[5px] h-[5px] rounded-full flex-shrink-0 ${
+                      isLicensed ? "bg-[#3B6D11]" : "bg-[#2A2A2A]"
+                    }`}
                   />
                   {isLicensed ? "pro" : "free"}
                 </span>
               </div>
 
               {isLicensed ? (
-                <div
-                  style={{
-                    padding: "10px 12px",
-                    background: "#0A1A08",
-                    border: "0.5px solid #27500A",
-                    borderRadius: 6,
-                  }}
-                >
-                  <p style={{ fontSize: 11, color: "#3B6D11", ...mono }}>
+                <div className="px-3 py-2.5 bg-[#0A1A08] border border-[#27500A] rounded-md">
+                  <p className="text-[11px] text-[#3B6D11] font-mono">
                     premium features active. thanks for supporting nook.
                   </p>
                 </div>
               ) : (
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 10 }}
-                >
-                  <p style={{ fontSize: 11, color: "#666", ...mono }}>
+                <div className="flex flex-col gap-2.5">
+                  <p className="text-[11px] text-[#666] font-mono">
                     scanning is free. upgrade to unlock file deletion, unlimited
                     depth, and advanced cleanup.
                   </p>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div className="flex gap-2">
                     <input
                       value={licenseKey}
                       onChange={(e) => setLicenseKey(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleActivate()}
-                      placeholder="NOOK-XXXX-XXXX-XXXX-XXXX"
-                      style={{
-                        flex: 1,
-                        height: 32,
-                        padding: "0 10px",
-                        borderRadius: 6,
-                        border: "0.5px solid #2A2A2A",
-                        background: "#141414",
-                        color: "#C8C4BE",
-                        fontSize: 11,
-                        outline: "none",
-                        ...mono,
-                      }}
+                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                      className="flex-1 h-8 px-2.5 rounded-md border border-[#2A2A2A] bg-[#141414] text-[#C8C4BE] text-[11px] outline-none font-mono"
                     />
                     <button
                       onClick={handleActivate}
                       disabled={isActivating}
-                      style={{
-                        height: 32,
-                        padding: "0 12px",
-                        borderRadius: 6,
-                        border: "0.5px solid #2A2A2A",
-                        background: "#1A1A1A",
-                        color: "#E8E6E1",
-                        fontSize: 11,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        flexShrink: 0,
-                        opacity: isActivating ? 0.5 : 1,
-                        ...mono,
-                      }}
+                      className={`h-8 px-3 rounded-md border border-[#2A2A2A] bg-[#1A1A1A] text-[#E8E6E1] text-[11px] cursor-pointer flex items-center gap-1.5 flex-shrink-0 font-mono ${
+                        isActivating ? "opacity-50" : "opacity-100"
+                      }`}
                     >
                       {isActivating ? (
                         <>
-                          <div
-                            style={{
-                              width: 10,
-                              height: 10,
-                              borderRadius: "50%",
-                              border: "1.5px solid #555",
-                              borderTopColor: "#666",
-                              animation: "spin 0.8s linear infinite",
-                            }}
-                          />
+                          <div className="w-2.5 h-2.5 rounded-full border-[1.5px] border-[#555] border-t-[#666] animate-spin" />
                           activating…
                         </>
                       ) : (
@@ -406,11 +275,9 @@ export function Settings() {
                   </div>
                   {licenseMsg && (
                     <p
-                      style={{
-                        fontSize: 11,
-                        color: licenseMsgOk ? "#3B6D11" : "#712B13",
-                        ...mono,
-                      }}
+                      className={`text-[11px] font-mono ${
+                        licenseMsgOk ? "text-[#3B6D11]" : "text-[#712B13]"
+                      }`}
                     >
                       {licenseMsg}
                     </p>
@@ -420,8 +287,10 @@ export function Settings() {
             </div>
 
             {!isLicensed && (
-              <div style={card}>
-                <p style={lbl}>nook pro — $5 one-time</p>
+              <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5 mt-2.5">
+                <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] mb-3 font-mono">
+                  nook pro — $5 one-time
+                </p>
                 {[
                   "delete files and directories",
                   "unlimited scanning depth",
@@ -430,46 +299,24 @@ export function Settings() {
                 ].map((f, i, arr) => (
                   <div
                     key={f}
-                    style={{ ...(i < arr.length - 1 ? row : rowLast), gap: 10 }}
+                    className={`flex items-center justify-between gap-2.5 py-3 ${
+                      i < arr.length - 1 ? "border-b border-[#161616]" : ""
+                    }`}
                   >
-                    <span style={{ fontSize: 11, color: "#777", ...mono }}>
+                    <span className="text-[11px] text-[#777] font-mono">
                       {f}
                     </span>
-                    <div
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: "50%",
-                        border: "0.5px solid #2A2A2A",
-                        flexShrink: 0,
-                      }}
-                    />
+                    <div className="w-3.5 h-3.5 rounded-full border border-[#2A2A2A] flex-shrink-0" />
                   </div>
                 ))}
-                <div style={{ marginTop: 14 }}>
+                <div className="mt-3.5">
                   <a
-                    href="https://dodo-payments.example.com/buy/nook"
+                    href="https://nook-landing.vercel.app/pricing"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                      height: 32,
-                      borderRadius: 6,
-                      border: "0.5px solid #2A2A2A",
-                      background: "#1A1A1A",
-                      color: "#E8E6E1",
-                      fontSize: 11,
-                      textDecoration: "none",
-                      ...mono,
-                    }}
+                    className="flex items-center justify-center gap-1.5 h-8 rounded-md border border-[#2A2A2A] bg-[#1A1A1A] text-[#E8E6E1] text-[11px] no-underline font-mono"
                   >
-                    <CreditCard
-                      style={{ width: 12, height: 12 }}
-                      strokeWidth={1.6}
-                    />
+                    <CreditCard className="w-3 h-3" strokeWidth={1.6} />
                     buy nook pro
                   </a>
                 </div>
@@ -480,76 +327,47 @@ export function Settings() {
 
         {/* SCANNING */}
         {activeSection === "scanning" && (
-          <div style={card}>
-            <p style={lbl}>scanning preferences</p>
+          <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+            <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] mb-3 font-mono">
+              scanning preferences
+            </p>
 
-            <div style={row}>
+            <div className={rowClass}>
               <div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "#C8C4BE",
-                    marginBottom: 2,
-                    ...mono,
-                  }}
-                >
+                <p className="text-xs text-[#C8C4BE] mb-0.5 font-mono">
                   default scan location
                 </p>
-                <p style={{ fontSize: 10, color: "#666", ...mono }}>
+                <p className="text-[10px] text-[#666] font-mono">
                   {prefs.defaultPath || "not set"}
                 </p>
               </div>
               <button
                 onClick={setHomePath}
-                style={{
-                  height: 26,
-                  padding: "0 10px",
-                  borderRadius: 5,
-                  border: "0.5px solid #2A2A2A",
-                  background: "transparent",
-                  color: "#777",
-                  fontSize: 10,
-                  cursor: "pointer",
-                  ...mono,
-                }}
+                className="h-[26px] px-2.5 rounded-md border border-[#2A2A2A] bg-transparent text-[#777] text-[10px] cursor-pointer font-mono"
               >
                 set home
               </button>
             </div>
 
-            <div style={row}>
+            <div className={rowClass}>
               <div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "#C8C4BE",
-                    marginBottom: 2,
-                    ...mono,
-                  }}
-                >
+                <p className="text-xs text-[#C8C4BE] mb-0.5 font-mono">
                   default scan depth
                 </p>
-                <p style={{ fontSize: 10, color: "#666", ...mono }}>
+                <p className="text-[10px] text-[#666] font-mono">
                   current: {prefs.defaultDepth}
                 </p>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="flex items-center gap-2">
                 {[1, 2, 3, 5, 8].map((d) => (
                   <button
                     key={d}
                     onClick={() => save({ defaultDepth: d })}
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 5,
-                      border: `0.5px solid ${prefs.defaultDepth === d ? "#3B6D11" : "#2A2A2A"}`,
-                      background:
-                        prefs.defaultDepth === d ? "#0A1A08" : "#141414",
-                      color: prefs.defaultDepth === d ? "#3B6D11" : "#777",
-                      fontSize: 11,
-                      cursor: "pointer",
-                      ...mono,
-                    }}
+                    className={`w-[26px] h-[26px] rounded-md text-[11px] cursor-pointer font-mono ${
+                      prefs.defaultDepth === d
+                        ? "border border-[#3B6D11] bg-[#0A1A08] text-[#3B6D11]"
+                        : "border border-[#2A2A2A] bg-[#141414] text-[#777]"
+                    }`}
                   >
                     {d}
                   </button>
@@ -557,8 +375,8 @@ export function Settings() {
               </div>
             </div>
 
-            <div style={row}>
-              <p style={{ fontSize: 12, color: "#C8C4BE", ...mono }}>
+            <div className={rowClass}>
+              <p className="text-xs text-[#C8C4BE] font-mono">
                 ignore hidden files
               </p>
               <Toggle
@@ -567,8 +385,8 @@ export function Settings() {
               />
             </div>
 
-            <div style={rowLast}>
-              <p style={{ fontSize: 12, color: "#C8C4BE", ...mono }}>
+            <div className={rowLastClass}>
+              <p className="text-xs text-[#C8C4BE] font-mono">
                 ignore system folders
               </p>
               <Toggle
@@ -581,11 +399,13 @@ export function Settings() {
 
         {/* UPDATES */}
         {activeSection === "updates" && (
-          <div style={card}>
-            <p style={lbl}>updates</p>
+          <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+            <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] mb-3 font-mono">
+              updates
+            </p>
 
-            <div style={row}>
-              <p style={{ fontSize: 12, color: "#C8C4BE", ...mono }}>
+            <div className={rowClass}>
+              <p className="text-xs text-[#C8C4BE] font-mono">
                 auto-check for updates
               </p>
               <Toggle
@@ -594,47 +414,22 @@ export function Settings() {
               />
             </div>
 
-            <div style={rowLast}>
+            <div className={rowLastClass}>
               <div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "#C8C4BE",
-                    marginBottom: 2,
-                    ...mono,
-                  }}
-                >
+                <p className="text-xs text-[#C8C4BE] mb-0.5 font-mono">
                   installed version
                 </p>
-                <p style={{ fontSize: 10, color: "#666", ...mono }}>0.1.0</p>
+                <p className="text-[10px] text-[#666] font-mono">0.1.0</p>
               </div>
               <button
                 onClick={handleCheckUpdate}
                 disabled={checkingUpdate}
-                style={{
-                  height: 28,
-                  padding: "0 12px",
-                  borderRadius: 5,
-                  border: "0.5px solid #2A2A2A",
-                  background: "transparent",
-                  color: "#666",
-                  fontSize: 10,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  opacity: checkingUpdate ? 0.5 : 1,
-                  ...mono,
-                }}
+                className={`h-7 px-3 rounded-md border border-[#2A2A2A] bg-transparent text-[#666] text-[10px] cursor-pointer flex items-center gap-[5px] font-mono ${
+                  checkingUpdate ? "opacity-50" : "opacity-100"
+                }`}
               >
                 <RefreshCw
-                  style={{
-                    width: 11,
-                    height: 11,
-                    animation: checkingUpdate
-                      ? "spin 0.8s linear infinite"
-                      : "none",
-                  }}
+                  className={`w-[11px] h-[11px] ${checkingUpdate ? "animate-spin" : ""}`}
                   strokeWidth={1.6}
                 />
                 {checkingUpdate ? "checking…" : "check now"}
@@ -642,14 +437,7 @@ export function Settings() {
             </div>
 
             {updateMsg && (
-              <p
-                style={{
-                  fontSize: 10,
-                  color: "#3B6D11",
-                  marginTop: 10,
-                  ...mono,
-                }}
-              >
+              <p className="text-[10px] text-[#3B6D11] mt-2.5 font-mono">
                 {updateMsg}
               </p>
             )}
@@ -658,61 +446,35 @@ export function Settings() {
 
         {/* HELP */}
         {activeSection === "help" && (
-          <div style={card}>
-            <p style={lbl}>get help</p>
+          <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+            <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] mb-3 font-mono">
+              get help
+            </p>
 
-            <div style={row}>
+            <div className={rowClass}>
               <div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "#C8C4BE",
-                    marginBottom: 2,
-                    ...mono,
-                  }}
-                >
+                <p className="text-xs text-[#C8C4BE] mb-0.5 font-mono">
                   email support
                 </p>
-                <p style={{ fontSize: 10, color: "#666", ...mono }}>
+                <p className="text-[10px] text-[#666] font-mono">
                   get help via email
                 </p>
               </div>
               <a
                 href="mailto:support@nookapp.pro"
-                style={{
-                  height: 28,
-                  padding: "0 12px",
-                  borderRadius: 5,
-                  border: "0.5px solid #2A2A2A",
-                  background: "transparent",
-                  color: "#777",
-                  fontSize: 10,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  textDecoration: "none",
-                  ...mono,
-                }}
+                className="h-7 px-3 rounded-md border border-[#2A2A2A] bg-transparent text-[#777] text-[10px] cursor-pointer flex items-center gap-[5px] no-underline font-mono"
               >
-                <Mail style={{ width: 11, height: 11 }} strokeWidth={1.6} />
+                <Mail className="w-[11px] h-[11px]" strokeWidth={1.6} />
                 email
               </a>
             </div>
 
-            <div style={rowLast}>
+            <div className={rowLastClass}>
               <div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "#C8C4BE",
-                    marginBottom: 2,
-                    ...mono,
-                  }}
-                >
+                <p className="text-xs text-[#C8C4BE] mb-0.5 font-mono">
                   social media
                 </p>
-                <p style={{ fontSize: 10, color: "#666", ...mono }}>
+                <p className="text-[10px] text-[#666] font-mono">
                   follow on X (Twitter)
                 </p>
               </div>
@@ -720,26 +482,9 @@ export function Settings() {
                 href="https://x.com/fiynraj"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  height: 28,
-                  padding: "0 12px",
-                  borderRadius: 5,
-                  border: "0.5px solid #2A2A2A",
-                  background: "transparent",
-                  color: "#777",
-                  fontSize: 10,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  textDecoration: "none",
-                  ...mono,
-                }}
+                className="h-7 px-3 rounded-md border border-[#2A2A2A] bg-transparent text-[#777] text-[10px] cursor-pointer flex items-center gap-[5px] no-underline font-mono"
               >
-                <ExternalLink
-                  style={{ width: 11, height: 11 }}
-                  strokeWidth={1.6}
-                />
+                <ExternalLink className="w-[11px] h-[11px]" strokeWidth={1.6} />
                 x.com
               </a>
             </div>
@@ -748,8 +493,10 @@ export function Settings() {
 
         {/* ABOUT */}
         {activeSection === "about" && (
-          <div style={card}>
-            <p style={lbl}>about nook</p>
+          <div className="bg-[#0F0F0F] border border-[#1E1E1E] rounded-lg px-4 py-3.5">
+            <p className="text-[9px] tracking-[0.08em] uppercase text-[#333] mb-3 font-mono">
+              about nook
+            </p>
 
             {[
               { k: "version", v: "0.1.0" },
@@ -761,69 +508,33 @@ export function Settings() {
               },
               { k: "developer", v: "@fiynraj" },
             ].map(({ k, v }, i, arr) => (
-              <div key={k} style={i < arr.length - 1 ? row : rowLast}>
-                <span style={{ fontSize: 11, color: "#666", ...mono }}>
-                  {k}
-                </span>
-                <span style={{ fontSize: 11, color: "#666", ...mono }}>
-                  {v}
-                </span>
+              <div
+                key={k}
+                className={`flex items-center justify-between py-3 ${
+                  i < arr.length - 1 ? "border-b border-[#161616]" : ""
+                }`}
+              >
+                <span className="text-[11px] text-[#666] font-mono">{k}</span>
+                <span className="text-[11px] text-[#666] font-mono">{v}</span>
               </div>
             ))}
 
-            <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
-              <a
-                href="https://nookapp.pro"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  flex: 1,
-                  height: 28,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 5,
-                  borderRadius: 5,
-                  border: "0.5px solid #2A2A2A",
-                  background: "transparent",
-                  color: "#777",
-                  fontSize: 10,
-                  textDecoration: "none",
-                  ...mono,
-                }}
-              >
-                <ExternalLink
-                  style={{ width: 10, height: 10 }}
-                  strokeWidth={1.6}
-                />
-                nookapp.pro
-              </a>
-              <a
-                href="https://x.com/fiynraj"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  flex: 1,
-                  height: 28,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 5,
-                  borderRadius: 5,
-                  border: "0.5px solid #2A2A2A",
-                  background: "transparent",
-                  color: "#777",
-                  fontSize: 10,
-                  textDecoration: "none",
-                  ...mono,
-                }}
-              >
-                <ExternalLink
-                  style={{ width: 10, height: 10 }}
-                  strokeWidth={1.6}
-                />
-                @fiynraj
-              </a>
+            <div className="mt-3.5 flex gap-2">
+              {[
+                { href: "https://nookapp.pro", label: "nookapp.pro" },
+                { href: "https://x.com/fiynraj", label: "@fiynraj" },
+              ].map(({ href, label }) => (
+                <a
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 h-7 flex items-center justify-center gap-[5px] rounded-md border border-[#2A2A2A] bg-transparent text-[#777] text-[10px] no-underline font-mono"
+                >
+                  <ExternalLink className="w-2.5 h-2.5" strokeWidth={1.6} />
+                  {label}
+                </a>
+              ))}
             </div>
           </div>
         )}

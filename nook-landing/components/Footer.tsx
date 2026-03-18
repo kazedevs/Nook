@@ -23,7 +23,7 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="https://twitter.com"
+                href="https://twitter.com/fiynraj"
                 className="text-n-muted hover:text-n-text transition-colors"
               >
                 <RiTwitterXLine size={16} />
