@@ -109,21 +109,9 @@ export function Download() {
             </a>
 
             <div className="flex items-center justify-center gap-2 mb-4">
-              <a
-                href={DOWNLOAD_URLS["apple-silicon"]}
-                download
-                className="text-xs text-n-muted hover:text-n-text transition-colors font-[system-ui] font-light"
-              >
-                Apple Silicon (M1/M2/M3)
-              </a>
-              <span className="text-n-dim">•</span>
-              <a
-                href={DOWNLOAD_URLS["intel"]}
-                download
-                className="text-xs text-n-muted hover:text-n-text transition-colors font-[system-ui] font-light"
-              >
-                Intel Mac
-              </a>
+              <span className="text-xs text-n-dim font-[system-ui] font-light">
+                Apple Silicon (M1/M2/M3) only
+              </span>
             </div>
 
             <div className="flex items-center justify-center gap-4 text-xs text-n-dim font-[system-ui] font-light">

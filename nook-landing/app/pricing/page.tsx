@@ -1,22 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  RiAppleLine,
-  RiCpuLine,
   RiDownloadLine,
   RiArrowLeftLine,
   RiCheckLine,
   RiArrowRightLine,
+  RiErrorWarningLine,
+  RiLoader4Line,
 } from "react-icons/ri";
 
 const schema = z.object({
   name: z.string().min(2, "at least 2 characters"),
-  email: z.string().email("invalid email"),
-  model: z.enum(["apple-silicon", "intel"], { message: "select a model" }),
+  email: z.string().email("invalid email address"),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -34,72 +33,141 @@ const PRO_FEATURES = [
   "lifetime updates",
 ];
 
+function FieldStatus({
+  error,
+  touched,
+  checking,
+  serverError,
+  okText,
+}: {
+  error?: string;
+  touched?: boolean;
+  checking?: boolean;
+  serverError?: string;
+  okText?: string;
+}) {
+  if (error)
+    return (
+      <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[#C0392B] font-mono">
+        <RiErrorWarningLine size={11} className="shrink-0" /> {error}
+      </p>
+    );
+  if (serverError)
+    return (
+      <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[#C0392B] font-mono">
+        <RiErrorWarningLine size={11} className="shrink-0" /> {serverError}
+      </p>
+    );
+  if (checking)
+    return (
+      <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-n-dim font-mono">
+        <RiLoader4Line size={11} className="shrink-0 animate-spin" /> checking…
+      </p>
+    );
+  if (touched && !error && !serverError)
+    return (
+      <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-n-dim font-mono">
+        <RiCheckLine size={11} className="shrink-0 text-n-green-text" />{" "}
+        {okText}
+      </p>
+    );
+  return null;
+}
+
 export default function PricingPage() {
   const [plan, setPlan] = useState<"free" | "paid" | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailTaken, setEmailTaken] = useState("");
 
   const {
     register,
     handleSubmit,
     formState: { errors, isValid, touchedFields },
     watch,
+    reset,
   } = useForm<FormData>({ resolver: zodResolver(schema), mode: "onChange" });
 
-  const model = watch("model");
+  const emailVal = watch("email");
+
+  useEffect(() => {
+    setEmailTaken("");
+    if (!emailVal || !emailVal.includes("@") || errors.email) return;
+    const t = setTimeout(async () => {
+      setEmailChecking(true);
+      try {
+        const res = await fetch("/api/users/check-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: emailVal }),
+        });
+        const result = await res.json();
+        if (result.exists) setEmailTaken("email already registered");
+      } catch {
+      } finally {
+        setEmailChecking(false);
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [emailVal, errors.email]);
 
   const onSubmit = async (data: FormData) => {
+    if (emailTaken) {
+      setFormError("please use a different email");
+      return;
+    }
     setSubmitting(true);
-    setError("");
+    setFormError("");
     try {
       if (plan === "free") {
-        // Save free trial user before redirecting to download
         await fetch("/api/users/free", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify({ ...data, model: "apple-silicon" }),
         });
         setSuccess(true);
         setTimeout(() => {
-          window.location.href = `/download?model=${data.model}&email=${encodeURIComponent(data.email)}`;
+          window.location.href = `/download?email=${encodeURIComponent(data.email)}`;
         }, 800);
         return;
       }
 
-      // Paid — call our API which returns a Dodo checkout URL
       const res = await fetch("/api/payment/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, model: "apple-silicon" }),
       });
       const result = await res.json();
-
       if (!res.ok || !result.url) {
-        setError(result.error ?? "payment setup failed — please try again");
+        setFormError(result.error ?? "payment setup failed — try again");
         return;
       }
-
-      document.cookie = `nook_model=${result.model}; path=/; max-age=3600; SameSite=Lax`;
+      document.cookie = `nook_model=apple-silicon; path=/; max-age=3600; SameSite=Lax`;
       setSuccess(true);
       setTimeout(() => {
         window.location.href = result.url;
       }, 800);
-    } catch (e) {
-      setError("something went wrong — please try again");
+    } catch {
+      setFormError("something went wrong — please try again");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const inputClass = (field: keyof FormData) =>
-    `w-full h-10 px-3 rounded-lg border bg-n-card2 text-n-text text-[13px] font-mono placeholder:text-n-dim outline-none transition-colors ${
+  const inputCls = (field: keyof FormData) =>
+    [
+      "w-full h-11 px-4 rounded-xl border text-[13px] font-mono",
+      "bg-n-card2 text-n-text placeholder:text-n-dim",
+      "outline-none transition-all duration-200",
+      "focus:ring-2 focus:ring-n-border2/20 focus:border-n-border2",
       errors[field]
-        ? "border-[#712B13]"
+        ? "border-red-500/50 bg-red-500/5"
         : touchedFields[field] && !errors[field]
-          ? "border-n-border2"
-          : "border-n-border focus:border-n-border2"
-    }`;
+          ? "border-n-border2 bg-n-card2"
+          : "border-n-border hover:border-n-border2",
+    ].join(" ");
 
   return (
     <div className="min-h-screen bg-n-bg px-6 py-20">
@@ -111,251 +179,249 @@ export default function PricingPage() {
           <h1 className="text-[clamp(22px,4vw,32px)] font-medium tracking-[-0.03em] text-n-text mb-3">
             choose your plan
           </h1>
-          <p className="text-[13px] text-n-muted">
+          <p className="text-[14px] font-[system-ui] font-light text-n-muted">
             start free, upgrade when you're ready
           </p>
         </div>
 
         {!plan ? (
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid md:grid-cols-2 gap-4">
             {/* Free */}
-            <button
+            <div
               onClick={() => setPlan("free")}
-              className="bg-n-card border border-n-border rounded-xl p-6 text-left hover:border-n-border2 transition-all group cursor-pointer"
+              className="group relative bg-linear-to-br from-n-card to-n-card2 border border-n-border rounded-2xl p-8 text-left hover:border-n-border2 hover:shadow-lg hover:shadow-n-border/10 transition-all duration-300 cursor-pointer overflow-hidden"
             >
-              <p className="text-[9px] tracking-widest text-n-dim uppercase mb-4">
-                free trial
-              </p>
-              <div className="text-[36px] font-medium tracking-[-0.04em] text-n-text mb-1">
-                $0
+              {/* Background gradient */}
+              <div className="absolute inset-0 bg-linear-to-br from-n-dim/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <p className="text-[10px] tracking-widest text-n-dim uppercase font-semibold">
+                    free trial
+                  </p>
+                  <div className="w-8 h-8 rounded-full bg-n-dim/10 flex items-center justify-center">
+                    <RiDownloadLine size={16} className="text-n-dim" />
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <div className="text-[48px] font-bold tracking-tight text-n-text mb-2">
+                    $0
+                    <span className="text-[14px] font-normal text-n-muted ml-2">
+                      forever
+                    </span>
+                  </div>
+                  <p className="text-[13px] font-[system-ui] font-light text-n-muted leading-relaxed">
+                    Start with full features · upgrade anytime
+                  </p>
+                </div>
+
+                <div className="space-y-3 mb-8">
+                  {TRIAL_FEATURES.map((f) => (
+                    <div key={f} className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-n-dim/10 flex items-center justify-center shrink-0">
+                        <RiCheckLine size={12} className="text-n-dim" />
+                      </div>
+                      <span className="text-[13px] text-n-muted">{f}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 text-[13px] text-n-text font-medium group-hover:gap-3 transition-all duration-200">
+                  start free trial{" "}
+                  <RiArrowRightLine
+                    size={16}
+                    className="group-hover:translate-x-1 transition-transform duration-200"
+                  />
+                </div>
               </div>
-              <p className="text-[11px] text-n-muted mb-6">
-                7 days · no card required
-              </p>
-              <ul className="space-y-2.5 mb-6">
-                {TRIAL_FEATURES.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-center gap-2.5 text-[11px] text-n-muted"
-                  >
-                    <RiCheckLine size={12} className="text-n-dim shrink-0" />{" "}
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex items-center gap-1.5 text-[11px] text-n-muted group-hover:text-n-text transition-colors">
-                start free trial <RiArrowRightLine size={12} />
-              </div>
-            </button>
+            </div>
 
             {/* Pro */}
-            <button
+            <div
               onClick={() => setPlan("paid")}
-              className="bg-n-card border border-n-green-brd rounded-xl p-6 text-left hover:border-n-green-text transition-all group cursor-pointer relative"
+              className="group relative bg-linear-to-br from-n-green-bg/20 to-n-card border-2 border-n-green-brd rounded-2xl p-8 text-left hover:border-n-green-text hover:shadow-lg hover:shadow-n-green-text/20 transition-all duration-300 cursor-pointer overflow-hidden"
             >
-              <div className="absolute top-4 right-4 text-[9px] tracking-[0.08em] text-n-green-text bg-n-green-bg border border-n-green-brd rounded-full px-2.5 py-0.5">
-                popular
+              {/* Background gradient */}
+              <div className="absolute inset-0 bg-linear-to-br from-n-green-text/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <p className="text-[10px] tracking-widest text-n-green-text uppercase font-semibold">
+                    pro
+                  </p>
+                  <div className="w-8 h-8 rounded-full bg-n-green-text/20 flex items-center justify-center">
+                    <RiCheckLine size={16} className="text-n-green-text" />
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <div className="text-[48px] font-bold tracking-tight text-n-text mb-2">
+                    $5
+                    <span className="text-[14px] font-normal text-n-muted ml-2">
+                      one-time
+                    </span>
+                  </div>
+                  <p className="text-[13px] font-[system-ui] font-light text-n-muted leading-relaxed">
+                    Lifetime access · all features included
+                  </p>
+                </div>
+
+                <div className="space-y-3 mb-8">
+                  {PRO_FEATURES.map((f) => (
+                    <div key={f} className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-n-green-text/20 flex items-center justify-center shrink-0">
+                        <RiCheckLine size={12} className="text-n-green-text" />
+                      </div>
+                      <span className="text-[13px] text-n-muted">{f}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 text-[13px] text-n-green-text font-medium group-hover:gap-3 transition-all duration-200">
+                  buy nook{" "}
+                  <RiArrowRightLine
+                    size={16}
+                    className="group-hover:translate-x-1 transition-transform duration-200"
+                  />
+                </div>
               </div>
-              <p className="text-[9px] tracking-widest text-n-dim uppercase mb-4">
-                pro
-              </p>
-              <div className="text-[36px] font-medium tracking-[-0.04em] text-n-text mb-1">
-                $5
-              </div>
-              <p className="text-[11px] text-n-muted mb-6">
-                one-time · lifetime access
-              </p>
-              <ul className="space-y-2.5 mb-6">
-                {PRO_FEATURES.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-center gap-2.5 text-[11px] text-n-muted"
-                  >
-                    <RiCheckLine
-                      size={12}
-                      className="text-n-green-text shrink-0"
-                    />{" "}
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex items-center gap-1.5 text-[11px] text-n-green-text group-hover:opacity-80 transition-opacity">
-                buy nook <RiArrowRightLine size={12} />
-              </div>
-            </button>
+            </div>
           </div>
         ) : (
           <div>
             <button
               onClick={() => {
                 setPlan(null);
-                setError("");
+                setFormError("");
                 setSuccess(false);
+                reset();
               }}
               className="flex items-center gap-2 text-[11px] text-n-muted hover:text-n-text transition-colors mb-8 cursor-pointer bg-transparent border-0"
             >
               <RiArrowLeftLine size={13} /> back to plans
             </button>
 
-            <div className="bg-n-card border border-n-border rounded-xl p-8">
-              <p className="text-[9px] tracking-widest text-n-dim uppercase mb-2">
-                {plan === "free" ? "free trial" : "nook pro — $5"}
-              </p>
-              <h2 className="text-[18px] font-medium text-n-text mb-7">
-                {plan === "free"
-                  ? "start your free trial"
-                  : "complete your purchase"}
-              </h2>
+            <div className="bg-gradient-to-br from-n-card to-n-card2 border border-n-border rounded-2xl p-10 shadow-xl shadow-n-border/5">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-n-dim/10 mb-4">
+                  {plan === "free" ? (
+                    <RiDownloadLine size={24} className="text-n-dim" />
+                  ) : (
+                    <RiCheckLine size={24} className="text-n-green-text" />
+                  )}
+                </div>
+                <p className="text-[11px] tracking-widest text-n-dim uppercase mb-3">
+                  {plan === "free" ? "free trial" : "nook pro — $5"}
+                </p>
+                <h2 className="text-[24px] font-bold text-n-text mb-2">
+                  {plan === "free"
+                    ? "start your free trial"
+                    : "complete your purchase"}
+                </h2>
+                <p className="text-[13px] font-[system-ui] font-light text-n-muted">
+                  {plan === "free"
+                    ? "7 days of full access · no credit card required"
+                    : "One-time payment · lifetime license key"}
+                </p>
+              </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                {/* Name */}
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="space-y-5"
+                noValidate
+              >
                 <div>
-                  <label className="block text-[10px] tracking-[0.08em] text-n-dim uppercase mb-2">
+                  <label className="block text-[11px] tracking-widest text-n-dim uppercase mb-3 font-semibold">
                     full name
                   </label>
                   <input
                     {...register("name")}
                     type="text"
-                    placeholder="your name"
-                    className={inputClass("name")}
+                    placeholder="Enter your full name"
+                    className={inputCls("name")}
+                    autoComplete="name"
                   />
-                  {errors.name ? (
-                    <p className="mt-1.5 text-[10px] text-[#712B13]">
-                      ⚠ {errors.name.message}
-                    </p>
-                  ) : (
-                    touchedFields.name && (
-                      <p className="mt-1.5 text-[10px] text-n-dim">
-                        ✓ looks good
-                      </p>
-                    )
-                  )}
+                  <FieldStatus
+                    error={errors.name?.message}
+                    touched={touchedFields.name}
+                    okText="looks good"
+                  />
                 </div>
 
-                {/* Email */}
                 <div>
-                  <label className="block text-[10px] tracking-[0.08em] text-n-dim uppercase mb-2">
+                  <label className="block text-[11px] tracking-widest text-n-dim uppercase mb-3 font-semibold">
                     email address
                   </label>
                   <input
                     {...register("email")}
                     type="email"
                     placeholder="you@example.com"
-                    className={inputClass("email")}
+                    className={inputCls("email")}
+                    autoComplete="email"
                   />
-                  {errors.email ? (
-                    <p className="mt-1.5 text-[10px] text-[#712B13]">
-                      ⚠ {errors.email.message}
-                    </p>
-                  ) : (
-                    touchedFields.email && (
-                      <p className="mt-1.5 text-[10px] text-n-dim">
-                        ✓ valid email
-                      </p>
-                    )
-                  )}
+                  <FieldStatus
+                    error={errors.email?.message}
+                    touched={touchedFields.email}
+                    checking={emailChecking}
+                    serverError={emailTaken}
+                    okText="valid email"
+                  />
                 </div>
 
-                {/* Model */}
-                <div>
-                  <label className="block text-[10px] tracking-[0.08em] text-n-dim uppercase mb-2">
-                    mac model
-                  </label>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {[
-                      {
-                        value: "apple-silicon",
-                        label: "Apple Silicon",
-                        sub: "M1 / M2 / M3",
-                        Icon: RiAppleLine,
-                      },
-                      {
-                        value: "intel",
-                        label: "Intel",
-                        sub: "Intel chips",
-                        Icon: RiCpuLine,
-                      },
-                    ].map(({ value, label, sub, Icon }) => (
-                      <label
-                        key={value}
-                        className={`flex items-center gap-3 p-3.5 rounded-lg border cursor-pointer transition-all ${
-                          model === value
-                            ? "border-n-border2 bg-n-card2"
-                            : "border-n-border hover:border-n-border2"
-                        }`}
-                      >
-                        <input
-                          {...register("model")}
-                          type="radio"
-                          value={value}
-                          className="sr-only"
-                        />
-                        <div
-                          className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                            model === value
-                              ? "bg-n-border2 text-n-text"
-                              : "bg-n-card text-n-dim"
-                          }`}
-                        >
-                          <Icon size={14} />
-                        </div>
-                        <div>
-                          <p
-                            className={`text-[12px] font-medium ${model === value ? "text-n-text" : "text-n-muted"}`}
-                          >
-                            {label}
-                          </p>
-                          <p className="text-[10px] text-n-dim">{sub}</p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                  {errors.model && (
-                    <p className="mt-1.5 text-[10px] text-[#712B13]">
-                      ⚠ {errors.model.message}
+                {/* Form-level error */}
+                {formError && (
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                    <RiErrorWarningLine
+                      size={16}
+                      className="text-red-500 shrink-0 mt-0.5"
+                    />
+                    <p className="text-[12px] text-red-500 font-mono">
+                      {formError}
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
+
+                {/* Success */}
+                {success && (
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-n-green-bg border border-n-green-brd">
+                    <RiCheckLine
+                      size={16}
+                      className="text-n-green-text shrink-0"
+                    />
+                    <p className="text-[12px] text-n-green-text font-mono">
+                      {plan === "free"
+                        ? "redirecting to download…"
+                        : "redirecting to dodo checkout…"}
+                    </p>
+                  </div>
+                )}
 
                 {/* Submit */}
                 <button
                   type="submit"
-                  disabled={submitting || !isValid}
-                  className="w-full h-11 rounded-lg bg-n-text text-n-bg text-[12px] font-semibold tracking-[0.06em] cursor-pointer border-0 font-mono flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-40 mt-2"
+                  disabled={
+                    submitting || !isValid || !!emailTaken || emailChecking
+                  }
+                  className="w-full h-13 rounded-xl bg-n-text text-n-bg text-[14px] font-bold tracking-widest cursor-pointer border-0 font-mono flex items-center justify-center gap-3 hover:bg-n-green-text transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:shadow-n-green-text/30"
                 >
                   {submitting ? (
                     <>
-                      <div className="w-3 h-3 border border-black/30 border-t-black rounded-full animate-spin" />{" "}
+                      <div className="w-4 h-4 border-2 border-n-bg/30 border-t-n-bg rounded-full animate-spin" />
                       processing…
                     </>
                   ) : plan === "free" ? (
                     <>
-                      <RiDownloadLine size={14} /> START FREE TRIAL
+                      <RiDownloadLine size={18} /> START FREE TRIAL
                     </>
                   ) : (
                     "PROCEED TO PAYMENT →"
                   )}
                 </button>
 
-                {success && (
-                  <div className="p-3 rounded-lg bg-n-green-bg border border-n-green-brd text-n-green-text text-[11px] font-mono text-center">
-                    ✓{" "}
-                    {plan === "free"
-                      ? "redirecting to download…"
-                      : "redirecting to dodo checkout…"}
-                  </div>
-                )}
-
-                {error && (
-                  <div className="p-3 rounded-lg bg-n-amber-bg border border-n-amber-brd text-n-amber-text text-[11px] font-mono text-center">
-                    ⚠ {error}
-                  </div>
-                )}
-
-                {plan === "paid" && !success && !error && (
-                  <p className="text-[10px] text-n-dim text-center">
-                    you'll be redirected to dodo's secure checkout · license key
-                    emailed after purchase
+                {plan === "paid" && !success && !formError && (
+                  <p className="text-[10px] text-n-dim text-center leading-relaxed">
+                    redirected to dodo's secure checkout · license key emailed
                   </p>
                 )}
               </form>

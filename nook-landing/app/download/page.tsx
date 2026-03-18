@@ -8,130 +8,176 @@ import {
   RiArrowLeftLine,
   RiCheckLine,
   RiFileCopyLine,
+  RiAppleLine,
 } from "react-icons/ri";
+
+const DOWNLOAD_URL =
+  "https://github.com/yourusername/nook/releases/download/v0.1.0/Nook_0.1.0_aarch64.dmg";
+
+const STEPS = [
+  "download Nook.dmg",
+  "double-click to mount",
+  "drag to Applications",
+  "open Nook · grant permissions",
+];
 
 export default function DownloadPage() {
   const searchParams = useSearchParams();
-  const [userData, setUserData] = useState<any>(null);
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
-  const copyToClipboard = async () => {
-    const command = "xattr -rd com.apple.quarantine /Applications/Nook.app";
-    try {
-      await navigator.clipboard.writeText(command);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
+  const QUARANTINE_CMD =
+    "xattr -rd com.apple.quarantine /Applications/Nook.app";
 
   useEffect(() => {
-    const name = searchParams.get("name");
-    const email = searchParams.get("email");
-    const model = searchParams.get("model");
-
-    if (name && email && model) {
-      registerFreeTrial({ name, email, model });
-    }
+    const em = searchParams.get("email");
+    if (em) setEmail(decodeURIComponent(em));
   }, [searchParams]);
 
-  const registerFreeTrial = async (data: any) => {
-    try {
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, plan: "free" }),
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        setUserData(result.user);
-        setIsRegistered(true);
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-    }
+  const copy = async () => {
+    await navigator.clipboard.writeText(QUARANTINE_CMD);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-6">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-12">
-          <Link
-            href="/"
-            className="inline-flex items-center text-n-muted hover:text-n-text mb-8 transition-colors text-sm font-mono tracking-[0.04em]"
-          >
-            <RiArrowLeftLine className="w-4 h-4 mr-2" />
-            BACK
-          </Link>
+    <div className="min-h-screen bg-n-bg flex items-center justify-center px-6 py-16">
+      <div className="w-full max-w-md">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-[11px] text-n-muted hover:text-n-text transition-colors mb-10 font-mono tracking-[0.04em]"
+        >
+          <RiArrowLeftLine size={13} /> back
+        </Link>
 
-          <div className="w-12 h-12 rounded-xl border border-n-border bg-n-card flex items-center justify-center mx-auto mb-6">
-            <img src="/nook.png" alt="Nook Logo" className="w-8 h-8 rounded" />
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 rounded-[14px] border border-n-border bg-n-card2 flex items-center justify-center mx-auto mb-5 text-n-muted">
+            <RiAppleLine size={26} />
           </div>
-
-          <h1 className="text-2xl font-medium text-n-text mb-2 tracking-tight">
-            Download Nook
+          <h1 className="text-[22px] font-medium text-n-text mb-2">
+            download nook
           </h1>
-          <p className="text-sm text-n-muted font-light">Get Nook for macOS</p>
-
-          {isRegistered && userData && (
-            <div className="mt-6 p-3 bg-n-green-bg border border-n-green-brd rounded-lg">
-              <p className="text-n-green-text text-sm flex items-center justify-center gap-2">
-                <RiCheckLine className="w-4 h-4" />
-                Free trial activated for {userData.name}
-              </p>
-            </div>
-          )}
+          <p className="text-[12px] text-n-muted">
+            {email ? (
+              <>
+                trial started for <span className="text-n-text">{email}</span>
+              </>
+            ) : (
+              "macOS disk analyzer"
+            )}
+          </p>
         </div>
 
-        <div className="border border-n-border rounded-xl p-6 mb-8 bg-n-card">
-          <div className="text-center">
-            <h2 className="text-lg mb-10 font-medium text-n-text">
-              Nook for macOS
-            </h2>
+        {/* Download card */}
+        <div className="bg-n-card border border-n-border rounded-xl p-6 mb-4">
+          {/* Main download button */}
+          <a
+            href={DOWNLOAD_URL}
+            download
+            onClick={() => setDownloading(true)}
+            className="block mb-5"
+          >
+            <button className="w-full h-12 rounded-lg bg-n-text text-n-bg text-[12px] font-semibold tracking-[0.06em] font-mono cursor-pointer border-0 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+              {downloading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin" />{" "}
+                  downloading…
+                </>
+              ) : (
+                <>
+                  <RiDownloadLine size={15} /> DOWNLOAD NOOK.DMG
+                </>
+              )}
+            </button>
+          </a>
 
-            <button className="w-full bg-n-text text-black px-6 py-3 rounded-lg font-medium cursor-pointer hover:bg-n-dim transition-colors flex items-center justify-center gap-2 font-mono tracking-[0.04em] text-sm">
-              <RiDownloadLine className="w-4 h-4" />
-              DOWNLOAD NOOK.DMG
+          <div className="flex items-center justify-between text-[10px] text-n-dim font-mono">
+            <span>v0.1.0 · ~8 MB</span>
+            <span>Apple Silicon + Intel (Rosetta)</span>
+          </div>
+        </div>
+
+        {/* Installation steps */}
+        <div className="bg-n-card border border-n-border rounded-xl p-5 mb-4">
+          <p className="text-[9px] tracking-widest text-n-dim uppercase mb-4">
+            installation
+          </p>
+          <div className="space-y-0">
+            {STEPS.map((step, i) => (
+              <div
+                key={step}
+                className={`flex items-center gap-3 py-2.5 ${i < STEPS.length - 1 ? "border-b border-n-border" : ""}`}
+              >
+                <div className="w-5 h-5 rounded-full border border-n-border2 bg-n-card2 flex items-center justify-center shrink-0">
+                  <span className="text-[9px] text-n-dim font-mono">
+                    {i + 1}
+                  </span>
+                </div>
+                <span className="text-[12px] text-n-muted">{step}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Gatekeeper warning */}
+        <div className="bg-n-card border border-n-border rounded-xl p-5 mb-6">
+          <p className="text-[9px] tracking-widest text-n-dim uppercase mb-3">
+            if macOS blocks the app
+          </p>
+          <p className="text-[11px] text-n-muted mb-3 leading-relaxed">
+            macOS may show a security warning since nook isn't notarized yet.
+            run this command to fix it:
+          </p>
+          <div className="flex items-center gap-2 bg-n-card2 border border-n-border rounded-lg p-3">
+            <code className="flex-1 text-[11px] text-white font-mono break-all">
+              {QUARANTINE_CMD}
+            </code>
+            <button
+              onClick={copy}
+              className={`shrink-0 h-7 px-2.5 rounded border text-[10px] font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                copied
+                  ? "border-n-green-brd text-n-green-text bg-n-green-bg"
+                  : "border-n-border2 text-n-muted hover:text-n-text"
+              }`}
+            >
+              <RiFileCopyLine size={11} />
+              {copied ? "copied" : "copy"}
             </button>
           </div>
         </div>
 
-        <div className="space-y-6 mb-8">
-          <div className="border border-n-border rounded-lg p-4 bg-n-card">
-            <h3 className="text-sm font-medium text-n-text mb-3">
-              Requirements
-            </h3>
-            <ul className="space-y-2 text-xs text-n-muted">
-              <li>• macOS 10.15 or later</li>
-              <li>• 4GB RAM minimum</li>
-              <li>• Apple Silicon or Intel</li>
-            </ul>
-          </div>
-
-          <div className="border border-n-border rounded-lg p-4 bg-n-card">
-            <h3 className="text-sm font-medium text-n-text mb-3">
-              Installation
-            </h3>
-            <ol className="space-y-2 text-xs text-n-muted">
-              <li>1. Download Nook.dmg</li>
-              <li>2. Double-click to mount</li>
-              <li>3. Drag to Applications</li>
-              <li>4. Launch and grant permissions</li>
-            </ol>
-          </div>
+        {/* System requirements */}
+        <div className="bg-n-card border border-n-border rounded-xl p-5 mb-8">
+          <p className="text-[9px] tracking-widest text-n-dim uppercase mb-3">
+            requirements
+          </p>
+          {[
+            ["os", "macOS 12 Monterey or later"],
+            ["chip", "Apple Silicon or Intel (Rosetta 2)"],
+            ["ram", "4 GB minimum"],
+            ["storage", "~8 MB"],
+          ].map(([k, v]) => (
+            <div
+              key={k}
+              className="flex items-center justify-between py-1.5 text-[11px]"
+            >
+              <span className="text-n-dim font-mono">{k}</span>
+              <span className="text-n-muted">{v}</span>
+            </div>
+          ))}
         </div>
 
-        <div className="text-center">
+        <p className="text-center text-[11px] text-n-dim">
+          want full access?{" "}
           <Link
             href="/pricing"
-            className="inline-flex items-center text-n-muted hover:text-n-text transition-colors text-xs font-mono tracking-[0.04em]"
+            className="text-n-muted hover:text-n-text transition-colors underline underline-offset-2"
           >
-            Upgrade to Pro - $5
+            upgrade to pro — $5
           </Link>
-        </div>
+        </p>
       </div>
     </div>
   );
