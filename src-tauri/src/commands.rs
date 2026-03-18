@@ -316,7 +316,7 @@ async fn check_github_releases(current_version: &str) -> Result<Option<GitHubRel
         .build()?;
     
     let response = client
-        .get("https://api.github.com/repos/fiynraj/nook/releases/latest")
+        .get("https://api.github.com/repos/kazedevs/nook/releases/latest")
         .send()
         .await?;
     

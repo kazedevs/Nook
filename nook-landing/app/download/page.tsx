@@ -12,7 +12,7 @@ import {
 } from "react-icons/ri";
 
 const DOWNLOAD_URL =
-  "https://github.com/yourusername/nook/releases/download/v0.1.0/Nook_0.1.0_aarch64.dmg";
+  "https://github.com/kazedevs/Nook/releases/download/v0.1.0/Nook_0.1.0_aarch64.dmg";
 
 const STEPS = [
   "download Nook.dmg",

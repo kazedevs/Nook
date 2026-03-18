@@ -65,7 +65,7 @@
       },
       "resources": [],
       "shortDescription": "Disk space analyzer and cleaner",
-      "targets": ["macos-aarch64"],
+      "targets": "all",
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",

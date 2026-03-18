@@ -1,6 +1,6 @@
 export const DOWNLOAD_URLS = {
   "apple-silicon":
-    "https://github.com/fiynraj/nook/releases/download/v1.0.0/Nook_1.0.0_aarch64.dmg",
+    "https://github.com/kazedevs/Nook/releases/download/v0.1.0/Nook_0.1.0_aarch64.dmg",
 } as const;
 
 export const DODO_CHECKOUT_URL =
