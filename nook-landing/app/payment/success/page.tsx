@@ -10,8 +10,9 @@ import {
   RiKeyLine,
   RiRefreshLine,
 } from "react-icons/ri";
+import { Suspense } from "react";
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessPageContent() {
   const searchParams = useSearchParams();
   const [licenseData, setLicenseData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -204,5 +205,13 @@ export default function PaymentSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentSuccessPageContent />
+    </Suspense>
   );
 }

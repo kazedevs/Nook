@@ -10,6 +10,7 @@ import {
   RiFileCopyLine,
   RiAppleLine,
 } from "react-icons/ri";
+import { Suspense } from "react";
 
 const DOWNLOAD_URL =
   "https://github.com/kazedevs/Nook/releases/download/v0.1.0/Nook_0.1.0_aarch64.dmg";
@@ -21,7 +22,7 @@ const STEPS = [
   "open Nook · grant permissions",
 ];
 
-export default function DownloadPage() {
+function DownloadPageContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -180,5 +181,13 @@ export default function DownloadPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function DownloadPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DownloadPageContent />
+    </Suspense>
   );
 }
