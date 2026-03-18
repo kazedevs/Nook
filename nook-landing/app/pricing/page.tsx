@@ -302,7 +302,7 @@ export default function PricingPage() {
               <RiArrowLeftLine size={13} /> back to plans
             </button>
 
-            <div className="bg-gradient-to-br from-n-card to-n-card2 border border-n-border rounded-2xl p-10 shadow-xl shadow-n-border/5">
+            <div className="bg-linear-to-br from-n-card to-n-card2 border border-n-border rounded-2xl p-10 shadow-xl shadow-n-border/5">
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-n-dim/10 mb-4">
                   {plan === "free" ? (

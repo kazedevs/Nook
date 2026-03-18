@@ -1,3 +1,5 @@
+"use client";
+
 import {
   RiGridLine,
   RiDeleteBinLine,
@@ -6,6 +8,7 @@ import {
   RiSearchLine,
   RiTimeLine,
 } from "react-icons/ri";
+import { motion } from "framer-motion";
 
 const FEATURES = [
   {
@@ -48,13 +51,24 @@ const FEATURES = [
 
 export function Features() {
   return (
-    <section id="features" className="py-24 px-6 bg-black">
+    <section
+      id="features"
+      className="py-28 px-6 bg-black"
+      style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+    >
       <div className="max-w-[1040px] mx-auto">
-
         {/* Header */}
-        <div className="mb-16">
-          <p className="text-[10px] tracking-[0.18em] uppercase font-[system-ui] mb-4"
-            style={{ color: "rgba(255,255,255,0.2)" }}>
+        <motion.div
+          initial={{ opacity: 0, filter: "blur(10px)" }}
+          whileInView={{ opacity: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+          className="mb-16"
+        >
+          <p
+            className="text-[10px] tracking-[0.18em] uppercase font-[system-ui] mb-4"
+            style={{ color: "rgba(255,255,255,0.2)" }}
+          >
             Features
           </p>
           <h2
@@ -63,37 +77,57 @@ export function Features() {
           >
             Everything you need to
             <br />
-            <span style={{ color: "rgba(255,255,255,0.28)" }}>take back your storage.</span>
+            <span style={{ color: "rgba(255,255,255,0.28)" }}>
+              take back your storage.
+            </span>
           </h2>
-        </div>
+        </motion.div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px"
-          style={{ background: "rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
-          {FEATURES.map(({ icon: Icon, title, desc, highlight }) => (
-            <div
+        {/* Grid — gap-px connected surface */}
+        <motion.div
+          initial={{ opacity: 0, filter: "blur(10px)" }}
+          whileInView={{ opacity: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px"
+          style={{
+            background: "rgba(255,255,255,0.06)",
+            borderRadius: 16,
+            overflow: "hidden",
+          }}
+        >
+          {FEATURES.map(({ icon: Icon, title, desc, highlight }, index) => (
+            <motion.div
               key={title}
-              className="flex flex-col p-7 group transition-colors duration-150"
+              initial={{ opacity: 0, filter: "blur(10px)" }}
+              whileInView={{ opacity: 1, filter: "blur(0px)" }}
+              transition={{ duration: 0.6, delay: 0.1 + index * 0.1 }}
+              viewport={{ once: true }}
+              className="flex flex-col p-7"
               style={{ background: "#000" }}
             >
-              {/* Icon */}
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center mb-6 shrink-0 transition-colors duration-150"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.35)" }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center mb-6 shrink-0"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  color: "rgba(255,255,255,0.35)",
+                }}
               >
                 <Icon size={15} />
               </div>
-
-              {/* Text */}
-              <h3 className="text-[14px] font-semibold mb-2 font-inter" style={{ color: "#fff" }}>
+              <h3
+                className="text-[14px] font-semibold mb-2 font-inter"
+                style={{ color: "#fff" }}
+              >
                 {title}
               </h3>
-              <p className="text-[13px] font-[system-ui] font-light leading-relaxed grow mb-5"
-                style={{ color: "rgba(255,255,255,0.38)" }}>
+              <p
+                className="text-[13px] font-[system-ui] font-light leading-relaxed grow mb-5"
+                style={{ color: "rgba(255,255,255,0.38)" }}
+              >
                 {desc}
               </p>
-
-              {/* Highlight pill */}
               <div
                 className="inline-flex items-center gap-1.5 self-start px-2 py-1 rounded text-[11px] font-[system-ui] mt-auto"
                 style={{
@@ -102,13 +136,15 @@ export function Features() {
                   color: "rgba(120,190,50,0.8)",
                 }}
               >
-                <span className="w-1 h-1 rounded-full" style={{ background: "rgba(120,190,50,0.7)" }} />
+                <span
+                  className="w-1 h-1 rounded-full"
+                  style={{ background: "rgba(120,190,50,0.7)" }}
+                />
                 {highlight}
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
-
+        </motion.div>
       </div>
     </section>
   );

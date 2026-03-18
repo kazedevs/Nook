@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { RiDownloadLine, RiCheckLine, RiFileCopyLine } from "react-icons/ri";
+import { RiDownloadLine, RiCheckLine } from "react-icons/ri";
 import { IoLogoApple } from "react-icons/io5";
 import { Lock, Zap, Shield, Star } from "lucide-react";
 import { DOWNLOAD_URLS } from "@/lib/constants";
+import { motion } from "framer-motion";
 
 const REQUIREMENTS = [
   "macOS 12 Monterey or later",
@@ -43,11 +44,23 @@ export function Download() {
   return (
     <section id="download" className="py-16 px-6 bg-black">
       <div className="max-w-2xl mx-auto">
-        <p className="text-[9px] tracking-[0.14em] text-n-dim uppercase text-center mb-5">
+        <motion.p
+          initial={{ opacity: 0, filter: "blur(10px)" }}
+          whileInView={{ opacity: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+          className="text-[9px] tracking-[0.14em] text-n-dim uppercase text-center mb-5"
+        >
           download
-        </p>
+        </motion.p>
 
-        <div className="bg-n-card border border-n-border rounded-xl p-8 max-w-sm mx-auto text-center relative overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, filter: "blur(10px)" }}
+          whileInView={{ opacity: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          viewport={{ once: true }}
+          className="bg-n-card border border-n-border rounded-xl p-8 max-w-sm mx-auto text-center relative overflow-hidden"
+        >
           {/* Background accent */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-n-green-text/10 rounded-full -mr-16 -mt-16" />
 
@@ -102,10 +115,14 @@ export function Download() {
               download
               className="block mb-3"
             >
-              <button className="w-full h-12 rounded-lg bg-n-text text-n-bg text-sm font-bold tracking-[0.06em] cursor-pointer border-0 font-[system-ui] flex items-center justify-center gap-2 hover:bg-n-green-text transition-all duration-200 shadow-lg hover:shadow-xl">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-full h-12 rounded-lg bg-n-text text-n-bg text-sm font-bold tracking-[0.06em] cursor-pointer border-0 font-[system-ui] flex items-center justify-center gap-2 hover:bg-n-green-text transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
                 <IoLogoApple size={18} />
                 DOWNLOAD FOR MACOS - FREE
-              </button>
+              </motion.button>
             </a>
 
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -122,10 +139,16 @@ export function Download() {
               <span>Notarized </span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Additional trust section */}
-        <div className="mt-8 text-center">
+        <motion.div
+          initial={{ opacity: 0, filter: "blur(10px)" }}
+          whileInView={{ opacity: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          viewport={{ once: true }}
+          className="mt-8 text-center"
+        >
           <p className="text-xs text-n-muted font-[system-ui] font-light mb-4">
             Join 100+ Mac users who've already reclaimed their disk space
           </p>
@@ -145,7 +168,7 @@ export function Download() {
             </div>
             <span>4.9/5 • 20+ reviews</span>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
