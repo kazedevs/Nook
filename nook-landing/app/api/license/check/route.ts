@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../db";
-import { users, licenses } from "../../../db/schema";
+import { users } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     if (!sessionId && !email) {
       return NextResponse.json(
         { error: "Session ID or email required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
-      
+
       if (usersByEmail.length > 0) {
         user = usersByEmail[0];
       }
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         .where(eq(users.plan, "paid"))
         .orderBy(users.createdAt)
         .limit(10);
-      
+
       // Find the most recent user that matches (simplified logic)
       if (recentUsers.length > 0) {
         user = recentUsers[recentUsers.length - 1];
@@ -48,24 +48,11 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({
         success: false,
-        message: "License not found yet"
+        message: "License not found yet",
       });
     }
 
-    // Get license details
-    const userLicense = await db
-      .select()
-      .from(licenses)
-      .where(eq(licenses.userId, user.id))
-      .limit(1);
-
-    if (userLicense.length === 0) {
-      return NextResponse.json({
-        success: false,
-        message: "License not generated yet"
-      });
-    }
-
+    // Since license data is stored in the users table, return user license info directly
     return NextResponse.json({
       success: true,
       license: {
@@ -73,15 +60,14 @@ export async function GET(request: NextRequest) {
         licenseKey: user.licenseKey,
         email: user.email,
         plan: user.plan,
-        expiresAt: userLicense[0].expiresAt
-      }
+        isActive: user.isActive,
+      },
     });
-
   } catch (error) {
     console.error("Error checking license:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
