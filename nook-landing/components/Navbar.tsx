@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { RiDownloadLine, RiCloseLine, RiMenu3Line } from "react-icons/ri";
-
+import Image from "next/image";
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -12,7 +12,7 @@ export function Navbar() {
       <div className="max-w-2xl mx-auto px-6 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-[22px] h-[22px] rounded-md border border-n-border2 bg-n-card2 flex items-center justify-center shrink-0">
-            <NookLogo />
+            <Image src="/nook.png" alt="Nook Logo" width={22} height={22} className="rounded-md" />
           </div>
           <span className="text-[13px] font-medium text-n-text tracking-tight">
             nook
@@ -91,15 +91,5 @@ export function Navbar() {
         </div>
       )}
     </nav>
-  );
-}
-
-function NookLogo() {
-  return (
-    <img
-      src="/nook.png"
-      alt="Nook Logo"
-      className="w-[22px] h-[22px] rounded-md"
-    />
   );
 }
